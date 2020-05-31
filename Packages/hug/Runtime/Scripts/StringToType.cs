@@ -1,26 +1,35 @@
 using System.Collections.Generic;
-using System.Reflection;
 using System.Text.RegularExpressions;
 
 namespace AID
 {
+    /// <summary>
+    /// Static container for working with string data sources to typed sources.
+    ///
+    /// Uses object boxing to return through the same interface. To add more
+    /// types to support, see the converters dictionary. It must register as the
+    /// type it supports and then provide a function that takes string and returns
+    /// boxed object of stated type.
+    /// </summary>
     public static class StringToType
     {
         public delegate object StringToTypeDelegate(string s);
 
-        //these are not very exhaustive
         private static readonly Dictionary<System.Type, StringToTypeDelegate> converters =
             new Dictionary<System.Type, StringToTypeDelegate>()
             {
-                {typeof(int)    , (string s) => {return int.Parse(s);} },
-                {typeof(float)  , (string s) => {return float.Parse(s);} },
-                {typeof(string)  , (string s) => {return s; } },
-                {typeof(bool)  , (string s) => {return bool.Parse(s); } },
-                {typeof(UnityEngine.Vector4)  , (string s) => { return V4FromFloatArray(StringToFloatArray(s)); } },
-                {typeof(UnityEngine.Vector3)  , (string s) => { return (UnityEngine.Vector3) V4FromFloatArray(StringToFloatArray(s)); } },
-                {typeof(UnityEngine.Vector2)  , (string s) => { return (UnityEngine.Vector2) V4FromFloatArray(StringToFloatArray(s)); } }
+                {typeof(int)                , (string s) => { return int.Parse(s);} },
+                {typeof(float)              , (string s) => { return float.Parse(s);} },
+                {typeof(string)             , (string s) => { return s; } },
+                {typeof(bool)               , (string s) => { return bool.Parse(s); } },
+                {typeof(UnityEngine.Vector4), (string s) => { return V4FromFloatArray(StringToFloatArray(s)); } },
+                {typeof(UnityEngine.Vector3), (string s) => { return V3FromFloatArray(StringToFloatArray(s)); } },
+                {typeof(UnityEngine.Vector2), (string s) => { return V2FromFloatArray(StringToFloatArray(s)); } }
             };
 
+        /// <summary>
+        /// Extracts delimited numberals only
+        /// </summary>
         public static float[] StringToFloatArray(string s)
         {
             Regex regex = new Regex(@"-?(?:\d*\.)?\d+");
@@ -39,68 +48,39 @@ namespace AID
             return res;
         }
 
-        public static UnityEngine.Vector4 V4FromFloatArray(float[] floats)
+        public static UnityEngine.Vector4 V4FromFloatArray(float[] f)
         {
-            var retval = new UnityEngine.Vector4();
+            if (f.Length != 4)
+                throw new System.Exception("Incorrect number of floats provided for Vector4");
 
-            if (floats.Length > 0)
-                retval.x = floats[0];
-            if (floats.Length > 1)
-                retval.y = floats[1];
-            if (floats.Length > 2)
-                retval.z = floats[2];
-            if (floats.Length > 3)
-                retval.w = floats[3];
-
-            return retval;
+            return new UnityEngine.Vector4(f[0], f[1], f[2], f[3]);
         }
 
-        //very stupid and simple now but later may need to support heirarchy
-        public static string[] ParamStringToElements(string s)
+        public static UnityEngine.Vector3 V3FromFloatArray(float[] f)
         {
-            //thx http://regexr.com/
-            Regex regex = new Regex(@"\(.*?\)|\[.*?\]|"".*?""|[^\s]+");
-            MatchCollection matches = regex.Matches(s);
-            string[] res = new string[matches.Count];
-            for (int i = 0; i < res.Length; i++)
-            {
-                res[i] = matches[i].Value;
-            }
-            return res;
+            if (f.Length != 3)
+                throw new System.Exception("Incorrect number of floats provided for Vector3");
+
+            return new UnityEngine.Vector3(f[0], f[1], f[2]);
         }
 
-        public static bool ParamStringToObjects(string s, ParameterInfo[] pList, out object[] out_params)
+        public static UnityEngine.Vector2 V2FromFloatArray(float[] f)
         {
-            var sParams = ParamStringToElements(s);
+            if (f.Length != 2)
+                throw new System.Exception("Incorrect number of floats provided for Vector2");
 
-            bool hasSucceded = true;
-            out_params = new object[pList.Length];
-
-            if (sParams.Length != pList.Length)
-            {
-                UnityEngine.Debug.LogError("Param count mismatch. Expected " + pList.Length.ToString() + " got " + sParams.Length);
-
-                hasSucceded = false;
-            }
-            else
-            {
-                for (int i = 0; i < pList.Length; i++)
-                {
-                    var res = TryGetTypeFromString(pList[i].ParameterType, sParams[i]);
-
-                    if (res == null)
-                    {
-                        hasSucceded = false;
-                        UnityEngine.Debug.LogError(string.Format("Param #{0} failed. Could not convert \"{1}\" to type {2}", i, sParams[i], pList[i].ParameterType.Name));
-                    }
-
-                    out_params[i] = res;
-                }
-            }
-
-            return hasSucceded;
+            return new UnityEngine.Vector2(f[0], f[1]);
         }
 
+        public static object TryGetTypeFromString<T>(string s)
+        {
+            return TryGetTypeFromString(typeof(T), s);
+        }
+
+        /// <summary>
+        /// Use the converts to return correct value from string in target type
+        /// </summary>
+        /// <returns>value from input string, default(T) on failure</returns>
         public static object TryGetTypeFromString(System.Type t, string s)
         {
             object retval = null;
@@ -120,25 +100,17 @@ namespace AID
             return retval;
         }
 
-        public static bool Supports(System.Type t)
+        public static bool IsSupported<T>()
         {
-            return converters.ContainsKey(t);
+            return IsSupported(typeof(T));
         }
 
-        public static bool Supports(ParameterInfo[] pInfo, out string report)
+        /// <summary>
+        /// Is the given type listed in the converters.
+        /// </summary>
+        public static bool IsSupported(System.Type t)
         {
-            bool success = true;
-            report = string.Empty;
-            for (int i = 0; i < pInfo.Length; i++)
-            {
-                if (!converters.TryGetValue(pInfo[i].ParameterType, out var del))
-                {
-                    success = false;
-                    report += string.Format("Param #{0} \"{1}\" is not supported by StringToType", i, pInfo[i].ParameterType.Name);
-                }
-            }
-
-            return success;
+            return converters.ContainsKey(t);
         }
     }
 }

@@ -28,6 +28,7 @@ namespace AID
             Console.OnOutputUpdated -= devConsole.AddToMainOutput;
             devConsole.OnConsoleCommandInput -= RunConsoleCommand;
             devConsole.OnConsoleCompleteRequested -= Console.Complete;
+            Console.DeregisterCommand("clear");
         }
 
         private void RunConsoleCommand(string input)

@@ -1,22 +1,25 @@
 ﻿using System;
 using System.Linq;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using UnityEngine;
+
+//todo note that there is no support of 1,v3
 
 namespace AID
 {
-    public partial class Console
+    public static class ConsoleBindingHelper
     {
         public const BindingFlags PublicStatic = BindingFlags.Static | BindingFlags.Public | BindingFlags.DeclaredOnly;
         public const BindingFlags PublicInstance = BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly;
 
-        private static void AddCommand(string name, ICustomAttributeProvider item, ConsoleCommandData.Callback wrappedFunc)
+        private static void AddCommand(string name, ICustomAttributeProvider item, Console.CommandCallback wrappedFunc)
         {
             var cmdAttrs = item.GetCustomAttributes(typeof(ConsoleCommandAttribute), false);
             var attr = (cmdAttrs != null && cmdAttrs.Length > 0) ? (ConsoleCommandAttribute)cmdAttrs[0] : null;
             var desc = attr != null ? attr.help : string.Empty;
 
-            RegisterCommand(name, desc, wrappedFunc);
+            Console.RegisterCommand(name, desc, wrappedFunc);
         }
 
         public static void AddAllStaticsToConsole(Type type, string startingName = null, BindingFlags bindingFlags = PublicStatic, bool shouldAddMethods = true, bool shouldAddFields = true, bool shouldAddProps = true)
@@ -102,18 +105,89 @@ namespace AID
             if (wrappedFunc == null)
                 return false;
 
-            var nameToAdd = (!string.IsNullOrEmpty(startingName) ? startingName + AID.ConsoleCommandTreeNode.NodeSeparator : string.Empty) + item.Name;
+            var nameToAdd = (!string.IsNullOrEmpty(startingName) ? startingName + Console.NodeSeparator : string.Empty) + item.Name;
 
             AddCommand(nameToAdd, item, wrappedFunc);
             return true;
         }
 
+        /// <summary>
+        /// Helper for performing
+        /// </summary>
+        public static bool DoesSupportAll(ParameterInfo[] pInfo, out string report)
+        {
+            bool success = true;
+            report = string.Empty;
+            for (int i = 0; i < pInfo.Length; i++)
+            {
+                if (!StringToType.IsSupported(pInfo[i].ParameterType))
+                {
+                    success = false;
+                    report += string.Format("Param #{0} \"{1}\" is not supported by StringToType", i, pInfo[i].ParameterType.Name);
+                }
+            }
+
+            return success;
+        }
+
+        /// <summary>
+        /// Extracts delimited elements such as 0,hello,7
+        /// </summary>
+        public static string[] ParamStringToElements(string s)
+        {
+            //thx http://regexr.com/
+            Regex regex = new Regex(@"\(.*?\)|\[.*?\]|"".*?""|[^\s]+");
+            MatchCollection matches = regex.Matches(s);
+            string[] res = new string[matches.Count];
+            for (int i = 0; i < res.Length; i++)
+            {
+                res[i] = matches[i].Value;
+            }
+            return res;
+        }
+
+        /// <summary>
+        /// Takes a string of arguments and a list of parameters to a function and using the converter
+        /// functions attempts to build the object list to be passed to the method invoke.
+        /// </summary>
+        public static bool ParamStringToObjects(string s, ParameterInfo[] pList, out object[] out_params)
+        {
+            var sParams = ParamStringToElements(s);
+
+            bool hasSucceded = true;
+            out_params = new object[pList.Length];
+
+            if (sParams.Length != pList.Length)
+            {
+                UnityEngine.Debug.LogError("Param count mismatch. Expected " + pList.Length.ToString() + " got " + sParams.Length);
+
+                hasSucceded = false;
+            }
+            else
+            {
+                for (int i = 0; i < pList.Length; i++)
+                {
+                    var res = StringToType.TryGetTypeFromString(pList[i].ParameterType, sParams[i]);
+
+                    if (res == null)
+                    {
+                        hasSucceded = false;
+                        UnityEngine.Debug.LogError(string.Format("Param #{0} failed. Could not convert \"{1}\" to type {2}", i, sParams[i], pList[i].ParameterType.Name));
+                    }
+
+                    out_params[i] = res;
+                }
+            }
+
+            return hasSucceded;
+        }
+
         //generate and return a wrapping closure that is aware of param list required
-        public static ConsoleCommandData.Callback CallbackFromMethod(MethodInfo item, object instance)
+        public static Console.CommandCallback CallbackFromMethod(MethodInfo item, object instance)
         {
             var pList = item.GetParameters();
 
-            if (!StringToType.Supports(pList, out string report))
+            if (!DoesSupportAll(pList, out string report))
             {
                 Debug.LogError(string.Format("Cannot generate callback for method {0}. {1}", item.Name, report));
                 return null;
@@ -122,7 +196,7 @@ namespace AID
             //we could probably optimise this if it just takes a string but what would the point be
             return (string stringIn) =>
             {
-                if (StringToType.ParamStringToObjects(stringIn, pList, out object[] parameters))
+                if (ParamStringToObjects(stringIn, pList, out object[] parameters))
                 {
                     item.Invoke(instance, parameters);
                 }
@@ -148,52 +222,65 @@ namespace AID
                 attrProv = property;
             }
 
-            if (!StringToType.Supports(paramType))
+            if (!StringToType.IsSupported(paramType))
             {
                 UnityEngine.Debug.LogError(string.Format("Cannot generate variable wrapper on {0}, type {1} is not supported.", name, paramType.Name));
                 return;
             }
 
             //fancy wrapper goes here that returns value safely on no params and tries to convert on 1 param
-            ConsoleCommandData.Callback wrappedFunc = (string stringIn) =>
+            Console.CommandCallback wrappedFunc = (string stringIn) =>
             {
-                if (string.IsNullOrEmpty(stringIn))
+                //do they want to set
+                if (!string.IsNullOrEmpty(stringIn))
                 {
-                    //use it as a get
+                    object parameter = StringToType.TryGetTypeFromString(paramType, stringIn);
+
+                    if (parameter != null)
+                    {
+                        //use it as a set
+                        if (field != null)
+                        {
+                            field.SetValue(instance, parameter);
+                            //log new val
+                            Console.Log("=" + field.GetValue(instance).ToString());
+                        }
+                        else
+                        {
+                            if (property.CanWrite)
+                            {
+                                property.SetValue(instance, parameter, null);
+                                if (property.CanRead) Console.Log("=" + property.GetValue(instance, null).ToString());
+                            }
+                            else
+                            {
+                                Console.Log(property.Name + " cannot be set.");
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    //get only
                     if (field != null)
                     {
-                        Log("=" + field.GetValue(instance).ToString());
+                        Console.Log("=" + field.GetValue(instance).ToString());
                     }
                     else
                     {
                         if (property.CanRead)
-                            Log("=" + property.GetValue(instance, null).ToString());
+                        {
+                            Console.Log("=" + property.GetValue(instance, null).ToString());
+                        }
                         else
-                            Log("Not allowed to read property");
-                    }
-                    return;
-                }
-
-                object parameter = StringToType.TryGetTypeFromString(paramType, stringIn);
-
-                if (parameter != null)
-                {
-                    //use it as a set
-                    if (field != null)
-                    {
-                        field.SetValue(instance, parameter);
-                    }
-                    else
-                    {
-                        if (property.CanWrite)
-                            property.SetValue(instance, parameter, null);
-                        else
-                            Log("Not allowed to write property");
+                        {
+                            Console.Log(property.Name + " cannot be read.");
+                        }
                     }
                 }
             };
 
-            AddCommand(startingName + ConsoleCommandTreeNode.NodeSeparator + name, attrProv, wrappedFunc);
+            AddCommand(startingName + Console.NodeSeparator + name, attrProv, wrappedFunc);
         }
 
         public static Type FindTypeByNameInAllAssemblies(string typeName, Assembly[] assms = null)
@@ -245,7 +332,7 @@ namespace AID
                             continue;
                         }
 
-                        RegisterCommand(cmd.name, cmd.help, cb);
+                        Console.RegisterCommand(cmd.name, cmd.help, cb);
                     }
                 }
             }

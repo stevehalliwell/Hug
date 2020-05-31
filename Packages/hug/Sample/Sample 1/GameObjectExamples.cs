@@ -32,16 +32,24 @@ namespace AID.Exaples
             else
             {
                 Console.Log("Game Object : " + obj.name);
-                foreach (var comp in obj.GetComponents(typeof(Component)))
+                var comps = obj.GetComponents<Component>();
+                for (int i = 0; i < comps.Length; i++)
                 {
-                    Console.Log("  Component : " + comp.GetType());
-                    foreach (var f in comp.GetType().GetFields())
+                    try
                     {
-                        Console.Log("    " + f.Name + " : " + f.GetValue(comp));
+                        var comp = comps[i];
+                        Console.Log("  Component : " + comp.GetType());
+                        foreach (var f in comp.GetType().GetFields())
+                        {
+                            Console.Log("    " + f.Name + " : " + f.GetValue(comp));
+                        }
+                        foreach (var p in comp.GetType().GetProperties())
+                        {
+                            Console.Log("    " + p.Name + " : " + p.GetValue(comp));
+                        }
                     }
-                    foreach (var p in comp.GetType().GetProperties())
+                    catch (System.Exception)
                     {
-                        Console.Log("    " + p.Name + " : " + p.GetValue(comp));
                     }
                 }
             }

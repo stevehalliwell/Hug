@@ -5,18 +5,14 @@ namespace AID
 {
     public class ConsoleCommandData
     {
-        public Callback callback;
+        public Console.CommandCallback callback;
 
         public string localName, help;
-
-        public delegate void Callback(string paramString);
     }
 
     public class ConsoleCommandTreeNode
     {
-        public const char NodeSeparatorChar = '.';
-        public static readonly string NodeSeparator = System.Convert.ToString(NodeSeparatorChar);
-
+        public ConsoleCommandData Command { get; protected set; }
         private ConsoleCommandTreeNode parentNode;
         private Dictionary<string, ConsoleCommandTreeNode> subCommandsLookUp = new Dictionary<string, ConsoleCommandTreeNode>();
 
@@ -24,13 +20,11 @@ namespace AID
         {
         }
 
-        public ConsoleCommandTreeNode(ConsoleCommandTreeNode parent, ConsoleCommandData data)
+        protected ConsoleCommandTreeNode(ConsoleCommandTreeNode parent, ConsoleCommandData data)
         {
             parentNode = parent;
             Command = data;
         }
-
-        public ConsoleCommandData Command { get; private set; }
 
         public string FullCommandPath
         {
@@ -38,18 +32,18 @@ namespace AID
             {
                 var hasParent = parentNode != null;
                 var parentPart = hasParent ? parentNode.FullCommandPath : string.Empty;
-                var myPart = (hasParent && parentNode.Command != null ? NodeSeparator : string.Empty) + (Command != null ? Command.localName : string.Empty);
+                var myPart = (hasParent && parentNode.Command != null ? Console.NodeSeparator : string.Empty) + (Command != null ? Command.localName : string.Empty);
                 return parentPart + myPart;
             }
         }
 
         public int NumSubComands { get { return subCommandsLookUp.Count; } }
 
-        public void Add(string[] names, ConsoleCommandData cmd, int command_index = 0)
+        public void Add(string[] names, Console.CommandCallback callback, string helpText, int command_index = 0)
         {
             if (names.Length == command_index)
             {
-                Command = cmd;
+                Command = new ConsoleCommandData { localName = names.Last(), callback = callback, help = helpText };
                 return;
             }
 
@@ -63,7 +57,29 @@ namespace AID
                 };
                 subCommandsLookUp[lowerToken] = new ConsoleCommandTreeNode(this, data);
             }
-            subCommandsLookUp[lowerToken].Add(names, cmd, command_index + 1);
+            subCommandsLookUp[lowerToken].Add(names, callback, helpText, command_index + 1);
+        }
+
+        public void Remove(string[] names, int command_index = 0)
+        {
+            if (names.Length == command_index + 1)
+            {
+                //its here or it isn't
+                if (subCommandsLookUp.TryGetValue(names.Last(), out var val))
+                {
+                    val.Clear();
+                }
+                subCommandsLookUp.Remove(names.Last());
+                return;
+            }
+            else
+            {
+                //if we have a matching container ask it to continue recursing
+                if (subCommandsLookUp.TryGetValue(names[command_index], out var val))
+                {
+                    val.Remove(names, command_index + 1);
+                }
+            }
         }
 
         public bool FindClosestMatch(string[] commandName, out ConsoleCommandTreeNode cur)
@@ -103,6 +119,27 @@ namespace AID
                     item.Visit(visitor);
                 }
             }
+        }
+
+        public void Clear()
+        {
+            parentNode = null;
+            if (Command != null)
+            {
+                //clear and abandon it
+                Command.callback = null;
+                Command.help = string.Empty;
+                Command.localName = string.Empty;
+                Command = null;
+            }
+            //all children to clear their commands and children
+            foreach (var item in subCommandsLookUp)
+            {
+                item.Value.Clear();
+            }
+
+            //clear the actual dictionary to abandon refs
+            subCommandsLookUp.Clear();
         }
     }
 }

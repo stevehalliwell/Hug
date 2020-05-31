@@ -1,16 +1,15 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using UnityEditor;
 
 namespace AID
 {
-    public partial class Console
+    public static class ConsoleDefaultCommands
     {
         [ConsoleCommand("Console.AddStaticTypeByString", "Attempt to add all static methods, props and fields of the type given by a string")]
         public static void AddStaticTypeByString(string typeName)
         {
-            var t = FindTypeByNameInAllAssemblies(typeName);
+            var t = ConsoleBindingHelper.FindTypeByNameInAllAssemblies(typeName);
 
             if (t == null)
             {
@@ -18,7 +17,7 @@ namespace AID
                 return;
             }
 
-            AddAllStaticsToConsole(t);
+            ConsoleBindingHelper.AddAllStaticsToConsole(t);
             Console.Log("Found " + typeName + " in " + t.Assembly.FullName);
         }
 
@@ -35,15 +34,15 @@ namespace AID
                 return true;
             };
 
-            instance.commandRoot.Visit(gatherNames);
+            Console.Visit(gatherNames);
             nList = nList.OrderBy(x => x.FullCommandPath).ToList();
 
-            var toJoin = nList.Select((item) => item.FullCommandPath + 
+            var toJoin = nList.Select((item) => item.FullCommandPath +
                 ((item.Command != null && !string.IsNullOrEmpty(item.Command.help)) ?
                     "\n  " + item.Command.help :
                     ""));
 
-            Console.Log(string.Join("\n",toJoin));
+            Console.Log(string.Join("\n", toJoin));
         }
 
         [ConsoleCommand("find", "Searches through all commands and conducts a partial match against the given string")]
@@ -63,7 +62,7 @@ namespace AID
                 return true;
             };
 
-            instance.commandRoot.Visit(findNames);
+            Console.Visit(findNames);
 
             Console.Log(string.Join("\n", nList.OrderBy(x => x.FullCommandPath).Select(x => x.FullCommandPath)));
         }

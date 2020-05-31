@@ -676,6 +676,7 @@ MonoBehaviour:
   historyIndexDown: 274
   previewText: {fileID: 114628105330375646}
   previewTextCanvasGroup: {fileID: 225591495057888724}
+  outputScrollRect: {fileID: 114557692653066578}
   inputField: {fileID: 114940160149611238}
   previewPanelFade:
     serializedVersion: 2
