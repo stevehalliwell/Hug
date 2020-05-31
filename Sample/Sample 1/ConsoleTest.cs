@@ -25,15 +25,15 @@ public class ConsoleTest : MonoBehaviour {
         ////proving we can go thro csv and back to load from file
         //var asStr = DeadSimpleCSV.CreateFromList(toAdd).GetAsCSVString();
         //AID.UTIL.WriteAllText(Application.dataPath + "//testConsoleCommand.csv", asStr);
-        
 
-        Console.AddAllStaticsToConsole(typeof(ConsoleStaticCommandsTest));
-        Console.AddAllInstanceToConsole(instTest, "instTest");
+
+        ConsoleBindingHelper.AddAllStaticsToConsole(typeof(ConsoleStaticCommandsTest));
+        ConsoleBindingHelper.AddAllInstanceToConsole(instTest, "instTest");
         //ConsoleHelper.AddAllToConsole(TestFancyScriptableObject.GetInstances()[0], "TestFancyScriptableObject");
 
         var  g = Physics.gravity;
 
-        Console.AddAllStaticsToConsole(typeof(Physics));
+        ConsoleBindingHelper.AddAllStaticsToConsole(typeof(Physics));
         //ConsoleHelper.AddAllStaticsToConsole(typeof(Physics2D));
         //ConsoleHelper.AddAllStaticsToConsole(typeof(Time));
         //ConsoleHelper.AddAllStaticsToConsole(typeof(QualitySettings));

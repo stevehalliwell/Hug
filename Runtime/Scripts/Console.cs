@@ -1,16 +1,25 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.Assertions;
 
+//todo failure to complete should do something
+//todo help ?
+//todo find with 1 result could auto fill it?
+//todo find with no result shouldn't do nothing
+
 namespace AID
 {
-    public partial class Console
+    public class Console
     {
-        public static Action<string> OnOutputUpdated;
+        public delegate void CommandCallback(string paramString);
+
+        public static System.Action<string> OnOutputUpdated;
 
         // Prefix for user inputted command
-        private const string COMMAND_OUTPUT_PREFIX = "> ";
+        public const string COMMAND_OUTPUT_PREFIX = "> ";
+
+        public const char NodeSeparatorChar = '.';
+        public static readonly string NodeSeparator = System.Convert.ToString(NodeSeparatorChar);
 
         private static Console instance;
         private ConsoleCommandTreeNode commandRoot;
@@ -27,7 +36,7 @@ namespace AID
                 if (instance == null)
                 {
                     instance = new Console();
-                    RegisterAttributes();
+                    ConsoleBindingHelper.RegisterAttributes();
                 }
 
                 return instance;
@@ -36,7 +45,7 @@ namespace AID
 
         public static string[] Complete(string partialCommand)
         {
-            DevConsole.InputStringToCommandAndParams(partialCommand, out string[] commandName, out string paramString);
+            InputStringToCommandAndParams(partialCommand, out string[] commandName, out string paramString);
             bool isCompleteMatch = Instance.commandRoot.FindClosestMatch(commandName, out ConsoleCommandTreeNode bestMatch);
 
             //if it is a complete match show all child commands
@@ -74,23 +83,46 @@ namespace AID
 
         public static void Log(string str)
         {
-            OnOutputUpdated?.Invoke(str);
+            if (OnOutputUpdated != null)
+                OnOutputUpdated.Invoke(str);
         }
 
-        public static void RegisterCommand(string commandName, string helpText, ConsoleCommandData.Callback callback)
+        //take something like Time.timeScale 1.5 and give back commandName {"Time", "timeScale"} and commandParams {"1.5"}
+        public static void InputStringToCommandAndParams(string str, out string[] commandName, out string paramString)
+        {
+            str = str.Trim();
+            var endOfCommand = str.IndexOf(' ');
+            paramString = string.Empty;
+            string commandStr;
+            if (endOfCommand != -1)
+            {
+                commandStr = str.Substring(0, endOfCommand);
+                paramString = str.Substring(endOfCommand).Trim();
+            }
+            else
+            {
+                commandStr = str;
+            }
+
+            commandName = commandStr.Split(Console.NodeSeparatorChar);
+        }
+
+        public static void RegisterCommand(string commandName, string helpText, CommandCallback callback)
         {
             Assert.IsFalse(string.IsNullOrEmpty(commandName));
 
-            DevConsole.InputStringToCommandAndParams(commandName, out string[] names, out string param);
+            InputStringToCommandAndParams(commandName, out string[] names, out string param);
 
-            ConsoleCommandData cmd = new ConsoleCommandData
-            {
-                localName = names[names.Length - 1],
-                help = helpText,
-                callback = callback
-            };
+            Instance.commandRoot.Add(names, callback, helpText);
+        }
 
-            Instance.commandRoot.Add(names, cmd);
+        public static void DeregisterCommand(string commandName)
+        {
+            Assert.IsFalse(string.IsNullOrEmpty(commandName));
+
+            InputStringToCommandAndParams(commandName, out string[] names, out string param);
+
+            Instance.commandRoot.Remove(names);
         }
 
         //this is the entry point for moving all console commands on device to CUDLR as this just takes raw inputstring
@@ -102,7 +134,7 @@ namespace AID
 
             Echo(str);
 
-            DevConsole.InputStringToCommandAndParams(str, out string[] commandName, out string paramString);
+            InputStringToCommandAndParams(str, out string[] commandName, out string paramString);
 
             if (Instance.commandRoot.FindClosestMatch(commandName, out cmd))
             {
@@ -115,14 +147,19 @@ namespace AID
                     }
                     else
                     {
-                        Console.Log(string.Join(ConsoleCommandTreeNode.NodeSeparator, commandName) + " exists but is not a runnable entry.");
+                        Console.Log(string.Join(Console.NodeSeparator, commandName) + " exists but is not a runnable entry.");
                         return false;
                     }
                 }
             }
 
-            Console.Log("Console cannot find command by name " + string.Join(ConsoleCommandTreeNode.NodeSeparator, commandName));
+            Console.Log("Console cannot find command by name " + string.Join(Console.NodeSeparator, commandName));
             return false;
+        }
+
+        public static void Visit(System.Func<ConsoleCommandTreeNode, bool> visitor)
+        {
+            instance.commandRoot.Visit(visitor);
         }
     }
 }
