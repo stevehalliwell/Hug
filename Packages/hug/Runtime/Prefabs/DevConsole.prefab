@@ -33,7 +33,7 @@ RectTransform:
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 20, y: 20}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -172,7 +172,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
+  m_Sprite: {fileID: 0}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -334,12 +334,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 1
+  m_RaycastTarget: 0
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 10917, guid: 0000000000000000f000000000000000, type: 0}
+  m_Sprite: {fileID: 0}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -396,7 +396,6 @@ GameObject:
   - component: {fileID: 224180498324588518}
   - component: {fileID: 222511807511717614}
   - component: {fileID: 114628105330375646}
-  - component: {fileID: 114036779353034024}
   - component: {fileID: 225591495057888724}
   m_Layer: 5
   m_Name: TextPreview
@@ -453,7 +452,7 @@ MonoBehaviour:
       m_Calls: []
   m_FontData:
     m_Font: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
-    m_FontSize: 14
+    m_FontSize: 10
     m_FontStyle: 0
     m_BestFit: 0
     m_MinSize: 1
@@ -465,21 +464,6 @@ MonoBehaviour:
     m_VerticalOverflow: 0
     m_LineSpacing: 1
   m_Text: 
---- !u!114 &114036779353034024
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1282713906187608}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: cfabb0440166ab443bba8876756fdfa9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_EffectColor: {r: 0, g: 0, b: 0, a: 0.5}
-  m_EffectDistance: {x: 1, y: -1}
-  m_UseGraphicAlpha: 1
 --- !u!225 &225591495057888724
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -490,7 +474,7 @@ CanvasGroup:
   m_Enabled: 1
   m_Alpha: 1
   m_Interactable: 0
-  m_BlocksRaycasts: 1
+  m_BlocksRaycasts: 0
   m_IgnoreParentGroups: 0
 --- !u!1 &1283146538448622
 GameObject:
@@ -662,28 +646,54 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4684ba51f3ea44b42a19b25215de93a2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  outputTextPrefab: {fileID: 1052475884600087622, guid: e7983c8d8126b514a9dfed4afb94e1a0,
-    type: 3}
+  firstLineOnly: 0
+  inputField: {fileID: 114940160149611238}
+  outputScrollRect: {fileID: 114557692653066578}
   outputTextContainer: {fileID: 1397146180398918430}
   outputTextLocalRoot: {fileID: 1103264525986474}
-  logsToShow: 50
-  firstLineOnly: 0
+  outputTextPrefab: {fileID: 1052475884600087622, guid: e7983c8d8126b514a9dfed4afb94e1a0,
+    type: 3}
+  previewPanelFade:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 0.75
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: -4
+      outSlope: -4
+      tangentMode: 34
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  previewText: {fileID: 114628105330375646}
+  previewTextCanvasGroup: {fileID: 225591495057888724}
   showLogFor: 3
   toggleConsole: 96
   confirmCommandEntered: 13
   suggestionKey: 9
   historyIndexUp: 273
   historyIndexDown: 274
-  previewText: {fileID: 114628105330375646}
-  previewTextCanvasGroup: {fileID: 225591495057888724}
-  outputScrollRect: {fileID: 114557692653066578}
-  inputField: {fileID: 114940160149611238}
-  previewPanelFade:
-    serializedVersion: 2
-    m_Curve: []
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
 --- !u!114 &1450672244
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -907,7 +917,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 10911, guid: 0000000000000000f000000000000000, type: 0}
+  m_Sprite: {fileID: 0}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -1384,7 +1394,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: -371.2}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &5320141440076179548
 CanvasRenderer:

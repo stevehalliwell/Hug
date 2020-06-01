@@ -7,7 +7,7 @@ public class DevConsoleTesting : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        AID.ConsoleBindingHelper.AddAllStaticsToConsole(typeof(Physics),"Physics");
+        AID.ConsoleBindingHelper.AddAllToConsole(null,null, typeof(Physics));
     }
 
     // Update is called once per frame

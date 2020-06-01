@@ -4,23 +4,11 @@ using UnityEditor;
 
 namespace AID
 {
+    /// <summary>
+    /// Standard, default commands assumed to be desired by all consoles. Will be found and added by the RegisterAttributes.
+    /// </summary>
     public static class ConsoleDefaultCommands
     {
-        [ConsoleCommand("Console.AddStaticTypeByString", "Attempt to add all static methods, props and fields of the type given by a string")]
-        public static void AddStaticTypeByString(string typeName)
-        {
-            var t = ConsoleBindingHelper.FindTypeByNameInAllAssemblies(typeName);
-
-            if (t == null)
-            {
-                Console.Log("Could not find type of name " + typeName + ". Make sure you are using the correct namespaces, nestedclass and assembly.");
-                return;
-            }
-
-            ConsoleBindingHelper.AddAllStaticsToConsole(t);
-            Console.Log("Found " + typeName + " in " + t.Assembly.FullName);
-        }
-
         [ConsoleCommand("all", "Gathers and shows all command")]
         public static void All()
         {
@@ -48,11 +36,11 @@ namespace AID
         [ConsoleCommand("find", "Searches through all commands and conducts a partial match against the given string")]
         public static void Find(string s)
         {
-            s = s.ToLower();
+            s = s.ToLowerInvariant();
             var nList = new List<ConsoleCommandTreeNode>();
             System.Func<ConsoleCommandTreeNode, bool> findNames = (ConsoleCommandTreeNode t) =>
             {
-                if (t.Command != null && t.Command.localName.ToLower().Contains(s))
+                if (t.Command != null && t.Command.localName.ToLowerInvariant().Contains(s))
                 {
                     nList.Add(t);
                     return false;   //no point checking children as they will match this already
@@ -64,10 +52,10 @@ namespace AID
 
             Console.Visit(findNames);
 
-            Console.Log(string.Join("\n", nList.OrderBy(x => x.FullCommandPath).Select(x => x.FullCommandPath)));
-        }
+            var output = string.Join("\n", nList.OrderBy(x => x.FullCommandPath).Select(x => x.FullCommandPath));
 
-        /* Print a list of all console commands */
+            Console.Log(output.Length > 0 ? output : "No matches found.");
+        }
 
         [ConsoleCommand("quit", "Quits application")]
         public static void QuitGame()

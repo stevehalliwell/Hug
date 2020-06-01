@@ -1,7 +1,6 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using AID;
+using System.Linq;
 
 //ok lets 
 //  smart get set - give it a full var path and it'll try to set it
@@ -9,13 +8,13 @@ using AID;
 //  something to specify don't wrap and convert params just pass the string down
 
 
-public class ConsoleTest : MonoBehaviour {
-
-    public InstanceData instTest =  new InstanceData();
+public class ConsoleTest : MonoBehaviour
+{
+    public InstanceData instTest = new InstanceData();
     //public TextAsset txt;
 
     // Use this for initialization
-    void Start ()
+    void Start()
     {
         //List<AID.ConsoleHelper.ClassByNameData> toAdd = new List<AID.ConsoleHelper.ClassByNameData>();
         //toAdd.Add(new AID.ConsoleHelper.ClassByNameData("ConsoleStaticCommandsTest"));
@@ -27,13 +26,13 @@ public class ConsoleTest : MonoBehaviour {
         //AID.UTIL.WriteAllText(Application.dataPath + "//testConsoleCommand.csv", asStr);
 
 
-        ConsoleBindingHelper.AddAllStaticsToConsole(typeof(ConsoleStaticCommandsTest));
-        ConsoleBindingHelper.AddAllInstanceToConsole(instTest, "instTest");
+        ConsoleBindingHelper.AddAllToConsole(null, null, typeof(ConsoleStaticCommandsTest));
+        ConsoleBindingHelper.AddAllToConsole(instTest, "instTest");
         //ConsoleHelper.AddAllToConsole(TestFancyScriptableObject.GetInstances()[0], "TestFancyScriptableObject");
 
-        var  g = Physics.gravity;
+        //var  g = Physics.gravity;
 
-        ConsoleBindingHelper.AddAllStaticsToConsole(typeof(Physics));
+        //ConsoleBindingHelper.AddAllStaticsToConsole(typeof(Physics));
         //ConsoleHelper.AddAllStaticsToConsole(typeof(Physics2D));
         //ConsoleHelper.AddAllStaticsToConsole(typeof(Time));
         //ConsoleHelper.AddAllStaticsToConsole(typeof(QualitySettings));
@@ -53,6 +52,24 @@ public class ConsoleTest : MonoBehaviour {
     //    yield return new WaitForSeconds(0.15f);
     //    Debug.Log("I logged after a wait");
     //}
+
+
+    [ConsoleCommand("Console.AddStaticTypeByString", "Attempt to add all static methods, props and fields of the type given by a string")]
+    public static void AddStaticTypeByString(string typeName)
+    {
+        var alltypes = System.AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.GetTypes());
+
+        var t = alltypes.FirstOrDefault(x => x.Name == typeName);
+
+        if (t == null)
+        {
+            Console.Log("Could not find type of name " + typeName + ". Make sure you are using the correct namespaces, nestedclass and assembly.");
+            return;
+        }
+
+        ConsoleBindingHelper.AddAllToConsole(null, null, t);
+        Console.Log("Found " + typeName + " in " + t.Assembly.FullName);
+    }
 }
 
 [System.Serializable]
@@ -94,24 +111,34 @@ public static class ConsoleStaticCommandsTest
         Debug.Log("test print");
     }
 
-    public static void PrintInt( int i)
+    public static void PrintInt(int i)
     {
         Debug.Log(i.ToString());
     }
-    
+
     public static void PrintFloat(float f)
     {
         Debug.Log(f.ToString());
     }
-    
+
     public static void PrintIntThenFloat(int i, float f)
     {
-        Debug.Log(i.ToString() +": " + f.ToString());
+        Debug.Log(i.ToString() + ": " + f.ToString());
     }
 
     public static void PrintIntStringFloat(int i, string str, float f)
     {
         Debug.Log(i.ToString() + ", " + str + ", " + f.ToString());
+    }
+
+    public static void PrintStringVector3(string str, Vector3 v3)
+    {
+        Debug.Log(str + ", " + v3.ToString());
+    }
+
+    public static void PrintStringVector3Float(string str, Vector3 v3, float a)
+    {
+        Debug.Log(str + ", " + v3.ToString() + ", " + a.ToString());
     }
 
     public class Something { }

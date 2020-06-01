@@ -16,16 +16,16 @@ namespace AID
         public delegate object StringToTypeDelegate(string s);
 
         private static readonly Dictionary<System.Type, StringToTypeDelegate> converters =
-            new Dictionary<System.Type, StringToTypeDelegate>()
-            {
-                {typeof(int)                , (string s) => { return int.Parse(s);} },
-                {typeof(float)              , (string s) => { return float.Parse(s);} },
-                {typeof(string)             , (string s) => { return s; } },
-                {typeof(bool)               , (string s) => { return bool.Parse(s); } },
-                {typeof(UnityEngine.Vector4), (string s) => { return V4FromFloatArray(StringToFloatArray(s)); } },
-                {typeof(UnityEngine.Vector3), (string s) => { return V3FromFloatArray(StringToFloatArray(s)); } },
-                {typeof(UnityEngine.Vector2), (string s) => { return V2FromFloatArray(StringToFloatArray(s)); } }
-            };
+        new Dictionary<System.Type, StringToTypeDelegate>()
+        {
+            {typeof(int)                , (string s) => { return int.Parse(s);} },
+            {typeof(float)              , (string s) => { return float.Parse(s);} },
+            {typeof(string)             , (string s) => { return s; } },
+            {typeof(bool)               , (string s) => { return bool.Parse(s); } },
+            {typeof(UnityEngine.Vector4), (string s) => { return V4FromFloatArray(StringToFloatArray(s)); } },
+            {typeof(UnityEngine.Vector3), (string s) => { return V3FromFloatArray(StringToFloatArray(s)); } },
+            {typeof(UnityEngine.Vector2), (string s) => { return V2FromFloatArray(StringToFloatArray(s)); } }
+        };
 
         /// <summary>
         /// Extracts delimited numberals only

@@ -6,16 +6,34 @@ using UnityEngine.UI;
 
 namespace AID
 {
+    /// <summary>
+    /// UI display and user input for use with Console class. Handles showing all output via elements and a preview via text.
+    /// Completion will fill in all common characters and user can cycle between all possible commands that match. Keeps a 
+    /// history of the commands entered which can be moved through to repeat commands.
+    /// 
+    /// Also shows unity's Debug log outputs with color coding.
+    /// </summary>
     public class DevConsole : MonoBehaviour
     {
+        [Tooltip("If true, only show the first line of a log from the Unity.Debug")]
         public bool firstLineOnly = true;
         public InputField inputField;
-        public int logsToShow = 5;
+        /// <summary>
+        /// Invoked with content of the inputfield when the confirmCommandEntered is hit. String is entire contents of input.
+        /// </summary>
         public System.Action<string> OnConsoleCommandInput;
+        /// <summary>
+        /// Invoked with content from inputfield when the suggestionKey is hit. String is entire contents of input.
+        /// 
+        /// Must return array of all possible commands that are the suggested matches based on the existing input,
+        /// needs to return these in a stable way to allow cycling through results.
+        /// </summary>
         public System.Func<string, string[]> OnConsoleCompleteRequested;
         public ScrollRect outputScrollRect;
         public RectTransform outputTextContainer;
+        [Tooltip("Holder of all the console objects when it is active and shown to user")]
         public GameObject outputTextLocalRoot;
+        [Tooltip("Prefab used for each element shown in the output")]
         public Text outputTextPrefab;
         public AnimationCurve previewPanelFade;
         public Text previewText;
@@ -40,8 +58,8 @@ namespace AID
             { LogType.Warning, "<color=#ffff00ff>" },
         };
 
-        private List<string> enteredHistory = new List<string>();
         private bool needsScrollUpdate;
+        private List<string> enteredHistory = new List<string>();
         private int prevCompleteIndex;
         private string[] prevCompleteResults;
         private int prevHistoryIndex;
@@ -49,6 +67,11 @@ namespace AID
         private int previousCaretPos;
         private string previousInputLine;
 
+        /// <summary>
+        /// Find the number of shared common characters among an array of strings. Used during autocomplete to fill in
+        /// the number of characters that we know must be typed without the user having to type them.
+        /// </summary>
+        /// <returns>number of characters that match</returns>
         public static int FirstCommonCharacters(string[] strs, int startingIndex = 0)
         {
             var shortest = strs[0].Length;
@@ -98,7 +121,7 @@ namespace AID
             needsScrollUpdate = true;
         }
 
-        public void Clear()
+        public void ClearMainOutput()
         {
             for (int i = outputTextContainer.childCount - 1; i >= 0; i--)
             {
@@ -106,6 +129,10 @@ namespace AID
             }
         }
 
+        /// <summary>
+        /// Completion can take a number of actions, either finding multiple partial matches, moving through the existing collection
+        /// of partial matches, filling out a complete line as there is only 1 partial match, finding zero matches.
+        /// </summary>
         public void CompleteConsoleInput()
         {
             if (OnConsoleCompleteRequested == null)
@@ -114,21 +141,28 @@ namespace AID
             //first time trying to complete
             if (prevCompleteResults == null || prevCompleteResults.Length == 0)
             {
-                prevCompleteResults = OnConsoleCompleteRequested.Invoke(inputField.text.Substring(0, inputField.selectionAnchorPosition));
+                //reset the autocomplete history
+                var searchString = inputField.text.Substring(0, inputField.selectionAnchorPosition);
+                prevCompleteResults = OnConsoleCompleteRequested.Invoke(searchString);
                 prevCompleteIndex = 0;
 
                 if (prevCompleteResults.Length == 1)
                 {
-                    inputField.text = prevCompleteResults[0];
-                    inputField.MoveTextEnd(false);
+                    //its not just the same existing matching
+                    if (searchString != prevCompleteResults[0])
+                    {
+                        inputField.text = prevCompleteResults[0];
+                        inputField.MoveTextEnd(false);
 
-                    //lets assume we just autocompleted and this might be a holder object so try to complete again
-                    //  won't run endlessly as if it is the same as the current input then we don't recurse
-                    prevCompleteResults = null;
-                    CompleteConsoleInput();
+                        //lets assume we just autocompleted and this might be a holder object so try to complete again
+                        //  won't run endlessly as if it is the same as the current input then we don't recurse
+                        prevCompleteResults = null;
+                        CompleteConsoleInput();
+                    }
                 }
                 else if (prevCompleteResults.Length > 0)
                 {
+                    //mutliple possiblilties do the characters.
                     int firstCommonChars = FirstCommonCharacters(prevCompleteResults, inputField.selectionAnchorPosition);
 
                     inputField.text = prevCompleteResults[0].Substring(0, firstCommonChars);
@@ -136,6 +170,10 @@ namespace AID
 
                     AddToMainOutput(string.Join("\n", prevCompleteResults));
                     AutoCompletePreviewText();
+                }
+                else
+                {
+                    AddToMainOutput("No partial matches found. Try a find or a search command.");
                 }
             }
             else
@@ -150,7 +188,10 @@ namespace AID
 
         public void DoConsoleInput(string input)
         {
+            //run
             OnConsoleCommandInput?.Invoke(input);
+
+            //cleanup
             inputField.text = string.Empty;
             inputField.Select();
             inputField.ActivateInputField();
@@ -195,6 +236,7 @@ namespace AID
             inputField.selectionFocusPosition = inputField.text.Length;
         }
 
+        //required so we can autoscroll to the bottom safely only once perframe if it is required
         private void LateUpdate()
         {
             if (outputTextLocalRoot.activeInHierarchy && needsScrollUpdate)
@@ -203,6 +245,9 @@ namespace AID
                 outputScrollRect.verticalNormalizedPosition = 0;
                 needsScrollUpdate = false;
             }
+
+            if (Input.GetKeyDown(toggleConsole))
+                ToggleConsole();
         }
 
         private void OnDisable()
@@ -246,9 +291,6 @@ namespace AID
 
         private void Update()
         {
-            if (Input.GetKeyDown(toggleConsole))
-                ToggleConsole();
-
             if (inputField.gameObject.activeInHierarchy)
             {
                 if (Input.GetKeyDown(confirmCommandEntered))
@@ -294,7 +336,7 @@ namespace AID
             previousCaretPos = inputField.selectionAnchorPosition;
 
             previewPanelCounter += Time.deltaTime;
-            previewTextCanvasGroup.alpha = previewPanelFade.Evaluate(previewPanelCounter);
+            previewTextCanvasGroup.alpha = previewPanelFade.Evaluate(previewPanelCounter/showLogFor);
         }
     }
 }
