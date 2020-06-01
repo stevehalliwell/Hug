@@ -20,7 +20,7 @@ namespace AID
             Console.OnOutputUpdated += devConsole.AddToMainOutput;
             devConsole.OnConsoleCommandInput += RunConsoleCommand;
             devConsole.OnConsoleCompleteRequested += Console.Complete;
-            Console.RegisterCommand("clear", "clears the output text of the console", (s) => devConsole.Clear());
+            Console.RegisterCommand("clear", "clears the output text of the console", (s) => devConsole.ClearMainOutput());
         }
 
         public void OnDisable()
@@ -33,7 +33,7 @@ namespace AID
 
         private void RunConsoleCommand(string input)
         {
-            Console.Run(input, out ConsoleCommandTreeNode tree);
+            Console.Run(input);
         }
     }
 }

@@ -2,45 +2,35 @@
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using UnityEngine;
-
-//todo note that there is no support of 1,v3
 
 namespace AID
 {
+    /// <summary>
+    /// These methods provide the bridge between the Console and methods or fields/properties. The generate Console.CommandCallback delegates that
+    /// handle the conversion of the input string from the user to the required typed objects needed by the navitive method. This is done with
+    /// the help fo the StringToType class. 
+    /// It also provides helpers for binding all of a static class, an object instance, or all items with the ConsoleCommand Attribute attached 
+    /// to them.
+    /// 
+    /// Presently using regex to determine parameter lists from user string. Meaning whitespace between params determines the number of params. If you
+    /// are using functions with multiple parameters be aware of this limitation/requirement. For example a method that takes a string, a vector3 and
+    /// a float needs to be "the string input" 1,2,3 3.14. This will be interpreted as 3 params {"the string input", "1,2,3", "3.14"}
+    /// </summary>
     public static class ConsoleBindingHelper
     {
-        public const BindingFlags PublicStatic = BindingFlags.Static | BindingFlags.Public | BindingFlags.DeclaredOnly;
-        public const BindingFlags PublicInstance = BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly;
-
-        private static void AddCommand(string name, ICustomAttributeProvider item, Console.CommandCallback wrappedFunc)
-        {
-            var cmdAttrs = item.GetCustomAttributes(typeof(ConsoleCommandAttribute), false);
-            var attr = (cmdAttrs != null && cmdAttrs.Length > 0) ? (ConsoleCommandAttribute)cmdAttrs[0] : null;
-            var desc = attr != null ? attr.help : string.Empty;
-
-            Console.RegisterCommand(name, desc, wrappedFunc);
-        }
-
-        public static void AddAllStaticsToConsole(Type type, string startingName = null, BindingFlags bindingFlags = PublicStatic, bool shouldAddMethods = true, bool shouldAddFields = true, bool shouldAddProps = true)
-        {
-            if (string.IsNullOrEmpty(startingName))
-                startingName = type.ToString();
-
-            AddAllToConsole(null, startingName, type, bindingFlags, shouldAddMethods, shouldAddFields, shouldAddProps);
-        }
-
-        public static void AddAllInstanceToConsole<T>(T instance, string startingName = null, BindingFlags bindingFlags = PublicInstance, bool shouldAddMethods = true, bool shouldAddFields = true, bool shouldAddProps = true)
-        {
-            var type = instance.GetType();
-            if (string.IsNullOrEmpty(startingName))
-                startingName = type.ToString();
-
-            AddAllToConsole(instance, startingName, type, bindingFlags, shouldAddMethods, shouldAddFields, shouldAddProps);
-        }
-
-        //will deduce type if null
-        public static void AddAllToConsole(object instance, string startingName, Type type = null, BindingFlags bindingFlags = PublicInstance, bool shouldAddMethods = true, bool shouldAddFields = true, bool shouldAddProps = true, bool suppressAutoAddOfCommandTaggedMethods = true)
+        /// <summary>
+        /// Will attempt to add all aspects of the given instance or type to the Console. If an instance is provided that will be used to deduce
+        /// the type and will bind instance declarations. If no instance is given, a type must be given and all static declarations.
+        /// </summary>
+        /// <param name="instance">if set, type will be fetched and instance binding</param>
+        /// <param name="startingName">if not set will be set to type.Name</param>
+        /// <param name="type">if set and instance is null, static binding</param>
+        public static void AddAllToConsole(object instance, string startingName, Type type = null, 
+            BindingFlags bindingFlags = BindingFlags.Public | BindingFlags.DeclaredOnly, 
+            bool shouldAddMethods = true, 
+            bool shouldAddFields = true, 
+            bool shouldAddProps = true, 
+            bool suppressAutoAddOfCommandTaggedMethods = true)
         {
             if (instance == null && type == null)
                 return;
@@ -48,26 +38,36 @@ namespace AID
             if (type == null && instance != null)
                 type = instance.GetType();
 
-            var attrs = type.GetCustomAttributes(typeof(ConsoleCommandIgnoreAttribute), false);
-            if (attrs != null && attrs.Length > 0)
+            if (type.IsDefined(typeof(ConsoleCommandIgnoreAttribute)))
                 return;
+
+            if (string.IsNullOrEmpty(startingName))
+                startingName = type.Name;
+
+            //if we have an instance then we should push binding instance in there if not we should push static in there
+            if (instance == null)
+                bindingFlags |= BindingFlags.Static;
+            else
+                bindingFlags |= BindingFlags.Instance;
 
             if (shouldAddMethods)
             {
-                var smList = type.GetMethods(bindingFlags)
-                .Where(m => !m.IsSpecialName);
+                var smList = type.GetMethods(bindingFlags).Where(m => !m.IsSpecialName);
 
                 foreach (var item in smList)
                 {
-                    attrs = item.GetCustomAttributes(typeof(ConsoleCommandAttribute), false);
-                    if (suppressAutoAddOfCommandTaggedMethods && attrs != null && attrs.Length > 0)
+                    if (suppressAutoAddOfCommandTaggedMethods && item.IsDefined(typeof(ConsoleCommandAttribute)))
                         continue;
 
-                    attrs = item.GetCustomAttributes(typeof(ConsoleCommandIgnoreAttribute), false);
-                    if (attrs != null && attrs.Length > 0)
+                    if (item.IsDefined(typeof(ConsoleCommandIgnoreAttribute)))
                         continue;
 
-                    AddMethodToConsole(item, instance, startingName);
+                    var wrappedFunc = CallbackFromMethod(item, instance);
+
+                    if (wrappedFunc != null)
+                    {
+                        Console.RegisterCommand( startingName + Console.NodeSeparator + item.Name, string.Empty, wrappedFunc);
+                    }
                 }
             }
             if (shouldAddFields)
@@ -76,11 +76,13 @@ namespace AID
 
                 foreach (var item in sfList)
                 {
-                    attrs = item.GetCustomAttributes(typeof(ConsoleCommandIgnoreAttribute), false);
-                    if (attrs != null && attrs.Length > 0)
+                    if (suppressAutoAddOfCommandTaggedMethods && item.IsDefined(typeof(ConsoleCommandAttribute)))
                         continue;
 
-                    PropAndFieldInternalHelper(instance, item, null, startingName);
+                    if (item.IsDefined(typeof(ConsoleCommandIgnoreAttribute)))
+                        continue;
+
+                    PropAndFieldInternalHelper(instance, item, null, startingName + Console.NodeSeparator + item.Name);
                 }
             }
             if (shouldAddProps)
@@ -89,49 +91,19 @@ namespace AID
 
                 foreach (var item in spList)
                 {
-                    attrs = item.GetCustomAttributes(typeof(ConsoleCommandIgnoreAttribute), false);
-                    if (attrs != null && attrs.Length > 0)
+                    if (suppressAutoAddOfCommandTaggedMethods && item.IsDefined(typeof(ConsoleCommandAttribute)))
                         continue;
 
-                    PropAndFieldInternalHelper(instance, null, item, startingName);
+                    if (item.IsDefined(typeof(ConsoleCommandIgnoreAttribute)))
+                        continue;
+
+                    PropAndFieldInternalHelper(instance, null, item, startingName + Console.NodeSeparator + item.Name);
                 }
             }
         }
 
-        public static bool AddMethodToConsole(MethodInfo item, object instance, string startingName)
-        {
-            var wrappedFunc = CallbackFromMethod(item, instance);
-
-            if (wrappedFunc == null)
-                return false;
-
-            var nameToAdd = (!string.IsNullOrEmpty(startingName) ? startingName + Console.NodeSeparator : string.Empty) + item.Name;
-
-            AddCommand(nameToAdd, item, wrappedFunc);
-            return true;
-        }
-
         /// <summary>
-        /// Helper for performing
-        /// </summary>
-        public static bool DoesSupportAll(ParameterInfo[] pInfo, out string report)
-        {
-            bool success = true;
-            report = string.Empty;
-            for (int i = 0; i < pInfo.Length; i++)
-            {
-                if (!StringToType.IsSupported(pInfo[i].ParameterType))
-                {
-                    success = false;
-                    report += string.Format("Param #{0} \"{1}\" is not supported by StringToType", i, pInfo[i].ParameterType.Name);
-                }
-            }
-
-            return success;
-        }
-
-        /// <summary>
-        /// Extracts delimited elements such as 0,hello,7
+        /// Extracts delimited elements such as 0,hello,7 becomes {"0","hello","7"} kept as a separate method to allow testing and iteration
         /// </summary>
         public static string[] ParamStringToElements(string s)
         {
@@ -147,64 +119,76 @@ namespace AID
         }
 
         /// <summary>
+        /// Generate and return a wrapping closure that is aware of param list required.
         /// Takes a string of arguments and a list of parameters to a function and using the converter
         /// functions attempts to build the object list to be passed to the method invoke.
         /// </summary>
-        public static bool ParamStringToObjects(string s, ParameterInfo[] pList, out object[] out_params)
-        {
-            var sParams = ParamStringToElements(s);
-
-            bool hasSucceded = true;
-            out_params = new object[pList.Length];
-
-            if (sParams.Length != pList.Length)
-            {
-                UnityEngine.Debug.LogError("Param count mismatch. Expected " + pList.Length.ToString() + " got " + sParams.Length);
-
-                hasSucceded = false;
-            }
-            else
-            {
-                for (int i = 0; i < pList.Length; i++)
-                {
-                    var res = StringToType.TryGetTypeFromString(pList[i].ParameterType, sParams[i]);
-
-                    if (res == null)
-                    {
-                        hasSucceded = false;
-                        UnityEngine.Debug.LogError(string.Format("Param #{0} failed. Could not convert \"{1}\" to type {2}", i, sParams[i], pList[i].ParameterType.Name));
-                    }
-
-                    out_params[i] = res;
-                }
-            }
-
-            return hasSucceded;
-        }
-
-        //generate and return a wrapping closure that is aware of param list required
         public static Console.CommandCallback CallbackFromMethod(MethodInfo item, object instance)
         {
             var pList = item.GetParameters();
 
-            if (!DoesSupportAll(pList, out string report))
+            //check that its even possible to support these params
+            bool paramSuccess = true;
+            var report = string.Empty;
+            for (int i = 0; i < pList.Length; i++)
             {
-                Debug.LogError(string.Format("Cannot generate callback for method {0}. {1}", item.Name, report));
+                if (!StringToType.IsSupported(pList[i].ParameterType))
+                {
+                    paramSuccess = false;
+                    report += string.Format("Param #{0} \"{1}\" is not supported by StringToType", i, pList[i].ParameterType.Name);
+                }
+            }
+
+            if (!paramSuccess)
+            {
+                UnityEngine.Debug.LogError(string.Format("Cannot generate callback for method {0}. {1}", item.Name, report));
                 return null;
             }
 
             //we could probably optimise this if it just takes a string but what would the point be
             return (string stringIn) =>
             {
-                if (ParamStringToObjects(stringIn, pList, out object[] parameters))
+                var sParams = ParamStringToElements(stringIn);
+
+                var parameters = new object[pList.Length];
+
+                if (sParams.Length != pList.Length)
                 {
-                    item.Invoke(instance, parameters);
+                    UnityEngine.Debug.LogError("Param count mismatch. Expected " + pList.Length.ToString() + " got " + sParams.Length);
+
+                    return;
                 }
+                else
+                {
+                    for (int i = 0; i < pList.Length; i++)
+                    {
+                        var res = StringToType.TryGetTypeFromString(pList[i].ParameterType, sParams[i]);
+
+                        if (res == null)
+                        {
+                            UnityEngine.Debug.LogError(string.Format("Param #{0} failed. Could not convert \"{1}\" to type {2}", i, sParams[i], pList[i].ParameterType.Name));
+                            return;
+                        }
+
+                        parameters[i] = res;
+                    }
+                }
+
+                item.Invoke(instance, parameters);
             };
         }
 
-        //wrap the functionality that is DAMN NEAR identical for fields and properties so we don't have to maintain two versions in 2 locations
-        private static void PropAndFieldInternalHelper(object instance, FieldInfo field, PropertyInfo property, string startingName)
+        /// <summary>
+        /// Check for compatibility with the variable in question, generate and add the closure. If no params are given it will act as a get,
+        /// if params are given it will attempt to use them as a set.
+        /// 
+        /// Wrap the functionality that is DAMN NEAR identical for fields and properties so we don't have to maintain two versions in 2 locations
+        /// </summary>
+        /// <param name="instance"></param>
+        /// <param name="field"></param>
+        /// <param name="property"></param>
+        /// <param name="finalName"></param>
+        private static void PropAndFieldInternalHelper(object instance, FieldInfo field, PropertyInfo property, string finalName)
         {
             Type paramType;
             string name;
@@ -280,60 +264,80 @@ namespace AID
                 }
             };
 
-            AddCommand(startingName + Console.NodeSeparator + name, attrProv, wrappedFunc);
+            var attrs = attrProv.GetCustomAttributes(typeof(ConsoleCommandAttribute), false) as ConsoleCommandAttribute[];
+            var attr = attrs.Length > 0 ? attrs[0] : null;
+
+            Console.RegisterCommand(finalName, attr != null ? attr.help : string.Empty, wrappedFunc);
         }
 
-        public static Type FindTypeByNameInAllAssemblies(string typeName, Assembly[] assms = null)
-        {
-            if (assms == null)
-                assms = System.AppDomain.CurrentDomain.GetAssemblies();
-
-            System.Type t = null;
-            System.Reflection.Assembly assm = null;
-
-            //find first match of type in any of the used assemblies
-            for (int i = 0; i < assms.Length && t == null; i++)
-            {
-                assm = assms[i];
-                t = assm.GetType(typeName, false, true);
-            }
-
-            return t;
-        }
-
+        /// <summary>
+        /// Finds all statics in classes, methods, fields, and properties that have the ConsoleCommand attribute on them and attempts to add them
+        /// to the console. By default this is called when the Console is first reqested.
+        /// 
+        /// Note that a ConsoleCommand attribute placed on a class, it will attempt to add all contained methods, fields and properties that are not
+        /// already tagged up with the attribute.
+        /// </summary>
         public static void RegisterAttributes()
         {
             var alltypes = AppDomain.CurrentDomain.GetAssemblies().SelectMany(x => x.GetTypes());
 
             foreach (var type in alltypes)
             {
+                //if the type has the console on it then pass it to the helper
+                if (type.IsDefined(typeof(ConsoleCommandAttribute)))
+                {
+                    if (type.IsDefined(typeof(ConsoleCommandIgnoreAttribute)))
+                        return;
+
+                    AddAllToConsole(null, null, type);
+                }
+
+                //do any methods have it within the type have the console
                 var methods = type.GetMethods(BindingFlags.Public | BindingFlags.Static);
 
                 foreach (var methInfo in methods)
                 {
-                    var attrs = methInfo.GetCustomAttributes(typeof(ConsoleCommandAttribute), true) as ConsoleCommandAttribute[];
-                    if (attrs.Length == 0)
+                    if (!(methInfo.GetCustomAttribute(typeof(ConsoleCommandAttribute), true) is ConsoleCommandAttribute cmdAttr))
                         continue;
 
+                    //it is annoying that this is so similar to AddMethodToConsole but we have need of extra info and extra checks given attribute used
                     var cb = CallbackFromMethod(methInfo, null);
 
                     if (cb == null)
                     {
-                        Debug.LogError(string.Format("Method {0}.{1} takes the wrong arguments for a console command.", type, methInfo.Name));
+                        UnityEngine.Debug.LogError(string.Format("Method {0}.{1} takes the wrong arguments for a console command.", type, methInfo.Name));
                         continue;
                     }
 
-                    // try with a bare action
-                    foreach (var cmd in attrs)
+                    if (string.IsNullOrEmpty(cmdAttr.name))
                     {
-                        if (string.IsNullOrEmpty(cmd.name))
-                        {
-                            Debug.LogError(string.Format("Method {0}.{1} needs a valid command name.", type, methInfo.Name));
-                            continue;
-                        }
-
-                        Console.RegisterCommand(cmd.name, cmd.help, cb);
+                        UnityEngine.Debug.LogError(string.Format("Method {0}.{1} needs a valid command name.", type, methInfo.Name));
+                        continue;
                     }
+
+                    Console.RegisterCommand(cmdAttr.name, cmdAttr.help, cb);
+                }
+
+                //do any fields have it
+                var fields = type.GetFields(BindingFlags.Public | BindingFlags.Static);
+
+                foreach (var fieldInfo in fields)
+                {
+                    if (!(fieldInfo.GetCustomAttribute(typeof(ConsoleCommandAttribute), true) is ConsoleCommandAttribute cmdAttr))
+                        continue;
+
+                    PropAndFieldInternalHelper(null, fieldInfo, null, cmdAttr.name);
+                }
+
+                //do any props have it
+                var props = type.GetProperties(BindingFlags.Public | BindingFlags.Static);
+
+                foreach (var propInfo in props)
+                {
+                    if (!(propInfo.GetCustomAttribute(typeof(ConsoleCommandAttribute), true) is ConsoleCommandAttribute cmdAttr))
+                        continue;
+
+                    PropAndFieldInternalHelper(null, null, propInfo, cmdAttr.name);
                 }
             }
         }

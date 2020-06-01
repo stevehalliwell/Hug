@@ -654,10 +654,6 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 1283146538448622, guid: 5b9111bd585c691468e907bdf7606cea, type: 3}
-      propertyPath: m_IsActive
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 1307497087190788, guid: 5b9111bd585c691468e907bdf7606cea, type: 3}
       propertyPath: m_Name
       value: DevConsole
@@ -704,21 +700,6 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4637436063651048, guid: 5b9111bd585c691468e907bdf7606cea, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 224655752524114658, guid: 5b9111bd585c691468e907bdf7606cea,
-        type: 3}
-      propertyPath: m_AnchorMax.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 224655752524114658, guid: 5b9111bd585c691468e907bdf7606cea,
-        type: 3}
-      propertyPath: m_AnchorMax.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 1397146180398918430, guid: 5b9111bd585c691468e907bdf7606cea,
-        type: 3}
-      propertyPath: m_SizeDelta.y
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []

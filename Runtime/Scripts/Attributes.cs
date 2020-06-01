@@ -3,9 +3,10 @@ using System;
 namespace AID
 {
     /// <summary>
-    /// To be attached to fields, props, and methods for automatic adding to the console during a ConsoleHelper or RegisterAttributes
+    /// To be attached to static fields, props, classes, or methods for automatic adding to the console during a ConsoleHelper or RegisterAttributes.
+    /// Recommendation is to place this directly on the data and functions desired rather than enclosing class as that allows help strings.
     /// </summary>
-    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Field | AttributeTargets.Property)]
+    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class | AttributeTargets.Field | AttributeTargets.Property)]
     public sealed class ConsoleCommandAttribute : Attribute
     {
         public ConsoleCommandAttribute(string cmdName, string helpTxt)
