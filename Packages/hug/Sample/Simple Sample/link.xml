@@ -1,0 +1,6 @@
+<linker>
+  <assembly fullname="UnityEngine">
+    <type fullname="UnityEngine.Physics" preserve="all" />
+    <!--- <type fullname="UnityEngine.*" preserve="all" /> -->
+  </assembly>
+</linker>
