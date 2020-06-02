@@ -1,8 +1,8 @@
 # Hug
-A Developer Console for Unity. 
+A Developer Console for Unity, that's easy to setup, and extend. Using it should feel safe and comfortable, like a warm hug.
 
 ## Why?
-Well there are a number of other options out there. None were quite doing all the things that I wanted or as easily as it could be. Previously I was using CUDLR with some modifications.It is no longer being supported. Thus Hug.
+Well there are a number of other options out there. None were quite doing all the things that I wanted or as easily as it could be. Previously I was using CUDLR with some modifications. It is no longer being supported. Thus Hug.
 
 ## Features
 - Show Unity Debug Logs
