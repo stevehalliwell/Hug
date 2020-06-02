@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using UnityEditor;
 
 namespace AID
 {
@@ -61,9 +60,9 @@ namespace AID
         public static void QuitGame()
         {
 #if UNITY_EDITOR
-            EditorApplication.ExitPlaymode();
+            UnityEditor.EditorApplication.ExitPlaymode();
 #else
-            Application.Quit();
+            UnityEngine.Application.Quit();
 #endif
         }
     }

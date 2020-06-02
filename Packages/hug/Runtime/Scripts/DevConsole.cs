@@ -8,33 +8,40 @@ namespace AID
 {
     /// <summary>
     /// UI display and user input for use with Console class. Handles showing all output via elements and a preview via text.
-    /// Completion will fill in all common characters and user can cycle between all possible commands that match. Keeps a 
+    /// Completion will fill in all common characters and user can cycle between all possible commands that match. Keeps a
     /// history of the commands entered which can be moved through to repeat commands.
-    /// 
+    ///
     /// Also shows unity's Debug log outputs with color coding.
     /// </summary>
     public class DevConsole : MonoBehaviour
     {
         [Tooltip("If true, only show the first line of a log from the Unity.Debug")]
         public bool firstLineOnly = true;
+
         public InputField inputField;
+
         /// <summary>
         /// Invoked with content of the inputfield when the confirmCommandEntered is hit. String is entire contents of input.
         /// </summary>
         public System.Action<string> OnConsoleCommandInput;
+
         /// <summary>
         /// Invoked with content from inputfield when the suggestionKey is hit. String is entire contents of input.
-        /// 
+        ///
         /// Must return array of all possible commands that are the suggested matches based on the existing input,
         /// needs to return these in a stable way to allow cycling through results.
         /// </summary>
         public System.Func<string, string[]> OnConsoleCompleteRequested;
+
         public ScrollRect outputScrollRect;
         public RectTransform outputTextContainer;
+
         [Tooltip("Holder of all the console objects when it is active and shown to user")]
         public GameObject outputTextLocalRoot;
+
         [Tooltip("Prefab used for each element shown in the output")]
         public Text outputTextPrefab;
+
         public AnimationCurve previewPanelFade;
         public Text previewText;
         public CanvasGroup previewTextCanvasGroup;
@@ -52,10 +59,10 @@ namespace AID
 
         private static readonly Dictionary<LogType, string> logTypeColors = new Dictionary<LogType, string>
         {
-            { LogType.Assert, "<color=#ffffffff>" },
-            { LogType.Error, "<color=#ff0000ff>" },
-            { LogType.Exception, "<color=#ff0000ff>" },
-            { LogType.Warning, "<color=#ffff00ff>" },
+            { LogType.Assert    , "<color=#ffffffff>" },
+            { LogType.Error     , "<color=#ff0000ff>" },
+            { LogType.Exception , "<color=#ff0000ff>" },
+            { LogType.Warning   , "<color=#ffff00ff>" },
         };
 
         private bool needsScrollUpdate;
@@ -188,8 +195,8 @@ namespace AID
 
         public void DoConsoleInput(string input)
         {
-            //run
-            OnConsoleCommandInput?.Invoke(input);
+            if(OnConsoleCommandInput != null)
+                OnConsoleCommandInput.Invoke(input);
 
             //cleanup
             inputField.text = string.Empty;
@@ -336,7 +343,7 @@ namespace AID
             previousCaretPos = inputField.selectionAnchorPosition;
 
             previewPanelCounter += Time.deltaTime;
-            previewTextCanvasGroup.alpha = previewPanelFade.Evaluate(previewPanelCounter/showLogFor);
+            previewTextCanvasGroup.alpha = previewPanelFade.Evaluate(previewPanelCounter / showLogFor);
         }
     }
 }

@@ -15,8 +15,8 @@ namespace AID
 
     /// <summary>
     /// Keeping commands organised in a tree makes a certain sense, given the heirarchical nature we support in command names.
-    /// 
-    /// At present each node is either a command or a folder of nodes. Commands are at leafs. This is easy to reason about and move over the 
+    ///
+    /// At present each node is either a command or a folder of nodes. Commands are at leafs. This is easy to reason about and move over the
     /// graph in visitors. It is however not the fastest method, the console command lookup time however should not be a pain point of performance.
     /// </summary>
     public class ConsoleCommandTreeNode
@@ -50,7 +50,7 @@ namespace AID
 
         /// <summary>
         /// Add a new command with names separated by folders/namespaces, last is command name, others are holders. These will be made as required
-        /// during the add. 
+        /// during the add.
         /// </summary>
         /// <param name="names">separated command name e.g. Physics.gravity is now {"Physics","gravity"}</param>
         /// <param name="callback">action of the command to add</param>
@@ -138,7 +138,7 @@ namespace AID
         }
 
         /// <summary>
-        /// Vistor is used to depth first traverse over the command tree. It is given the content of the node and must return true or false. On a 
+        /// Vistor is used to depth first traverse over the command tree. It is given the content of the node and must return true or false. On a
         /// true it continue to traverse the subcommands of the branch.
         /// </summary>
         /// <param name="visitor"></param>

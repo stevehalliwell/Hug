@@ -72,11 +72,6 @@ namespace AID
             return new UnityEngine.Vector2(f[0], f[1]);
         }
 
-        public static object TryGetTypeFromString<T>(string s)
-        {
-            return TryGetTypeFromString(typeof(T), s);
-        }
-
         /// <summary>
         /// Use the converts to return correct value from string in target type
         /// </summary>
@@ -98,11 +93,6 @@ namespace AID
             }
 
             return retval;
-        }
-
-        public static bool IsSupported<T>()
-        {
-            return IsSupported(typeof(T));
         }
 
         /// <summary>

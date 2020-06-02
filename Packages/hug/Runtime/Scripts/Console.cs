@@ -4,15 +4,15 @@ using UnityEngine.Assertions;
 namespace AID
 {
     /// <summary>
-    /// Console itself is fairly simple, it holds collections of delegates by name. It's a singleton and is separated from the tasks of UI and param 
-    /// lists and type conversion by other classes. This is the simplest it can take.
-    /// 
+    /// Console itself is fairly simple, it holds collections of delegates by name. It's a singleton and is separated from the tasks of UI and param
+    /// lists and type conversion by other classes. This is intended to be the simplest form it can take.
+    ///
     /// Commands take the form of void Func(string), where string is the uneditted param list given by the user.
     /// Command names are expecting to be separated by the NodeSeparatorChar, defaults to . to indicate namespaces/folders.
     /// Commands are split on the CommandParamSeparator, defaults to ' '. Everything before it is the command name, every after is the param
-    /// 
-    /// All strings used and passed are trimmed. If whitespace is important to your param, enclose in quotes is recommended.
-    /// 
+    ///
+    /// All strings used and passed are trimmed. If whitespace is important to your param, enclosing in quotes is recommended.
+    ///
     /// See the BindingHelper for working with functions with automatic conversation from user input string to paramlist.
     /// See DevConsole for working with UI, showing output and feeding input.
     /// </summary>
@@ -97,16 +97,14 @@ namespace AID
         /// <summary>
         /// Log prefixed with the ConsoleOutputPrefix
         /// </summary>
-        /// <param name="cmd"></param>
         public static void Echo(string cmd)
         {
             Log(ConsoleOutputPrefix + cmd);
         }
-        
+
         /// <summary>
         /// Forwards to the output delegate.
         /// </summary>
-        /// <param name="str"></param>
         public static void Log(string str)
         {
             if (OnOutputUpdated != null)
@@ -213,7 +211,6 @@ namespace AID
         /// <summary>
         /// Visitor to pass through all the TreeNode visitor method. See ConsoleCommandTreeNode.Visit for more info.
         /// </summary>
-        /// <param name="visitor"></param>
         public static void Visit(System.Func<ConsoleCommandTreeNode, bool> visitor)
         {
             instance.commandRoot.Visit(visitor);
