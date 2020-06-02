@@ -3,14 +3,10 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Net;
 
-namespace AID.Exaples
+namespace AID.Examples
 {
-    /**
-     * Example console commands for getting information about GameObjects
-     */
     public static class GameObjectCommands
     {
-
         [ConsoleCommand("GO.List", "lists all the game objects in the scene")]
         public static void ListGameObjects()
         {

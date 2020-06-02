@@ -3,18 +3,25 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 
+//todo autogen help string
+
 namespace AID
 {
     /// <summary>
     /// These methods provide the bridge between the Console and methods or fields/properties. The generate Console.CommandCallback delegates that
     /// handle the conversion of the input string from the user to the required typed objects needed by the navitive method. This is done with
-    /// the help fo the StringToType class. 
-    /// It also provides helpers for binding all of a static class, an object instance, or all items with the ConsoleCommand Attribute attached 
+    /// the help fo the StringToType class.
+    /// It also provides helpers for binding all of a static class, an object instance, or all items with the ConsoleCommand Attribute attached
     /// to them.
+    ///
+    /// Presently using regex to determine parameter lists from user string. Meaning whitespace between params determines the number of params. 
+    /// If you are using functions with multiple parameters be aware of this limitation/requirement. For example a method that takes a string, 
+    /// a vector3 and a float needs to be "the string input" 1,2,3 3.14. This will be interpreted as 3 params {"the string input", "1,2,3", "3.14"}
     /// 
-    /// Presently using regex to determine parameter lists from user string. Meaning whitespace between params determines the number of params. If you
-    /// are using functions with multiple parameters be aware of this limitation/requirement. For example a method that takes a string, a vector3 and
-    /// a float needs to be "the string input" 1,2,3 3.14. This will be interpreted as 3 params {"the string input", "1,2,3", "3.14"}
+    /// Notes for IL2CPP and code stripping: the binding and attributes usage is all based on reflection, so when Unity is stripping code
+    /// it may not see that we are trying to reference certain elements. For example, a AddAllToConsole(null,null, typeof(Physics)); will result
+    /// in all elements of the physics class not directly referenced elsewhere in your code, missing, a link.xml or attributes may be required.
+    /// See https://docs.unity3d.com/Manual/ManagedCodeStripping.html
     /// </summary>
     public static class ConsoleBindingHelper
     {
@@ -25,11 +32,11 @@ namespace AID
         /// <param name="instance">if set, type will be fetched and instance binding</param>
         /// <param name="startingName">if not set will be set to type.Name</param>
         /// <param name="type">if set and instance is null, static binding</param>
-        public static void AddAllToConsole(object instance, string startingName, Type type = null, 
-            BindingFlags bindingFlags = BindingFlags.Public | BindingFlags.DeclaredOnly, 
-            bool shouldAddMethods = true, 
-            bool shouldAddFields = true, 
-            bool shouldAddProps = true, 
+        public static void AddAllToConsole(object instance, string startingName, Type type = null,
+            BindingFlags bindingFlags = BindingFlags.Public | BindingFlags.DeclaredOnly,
+            bool shouldAddMethods = true,
+            bool shouldAddFields = true,
+            bool shouldAddProps = true,
             bool suppressAutoAddOfCommandTaggedMethods = true)
         {
             if (instance == null && type == null)
@@ -66,7 +73,7 @@ namespace AID
 
                     if (wrappedFunc != null)
                     {
-                        Console.RegisterCommand( startingName + Console.NodeSeparator + item.Name, string.Empty, wrappedFunc);
+                        Console.RegisterCommand(startingName + Console.NodeSeparator + item.Name, string.Empty, wrappedFunc);
                     }
                 }
             }
@@ -181,7 +188,7 @@ namespace AID
         /// <summary>
         /// Check for compatibility with the variable in question, generate and add the closure. If no params are given it will act as a get,
         /// if params are given it will attempt to use them as a set.
-        /// 
+        ///
         /// Wrap the functionality that is DAMN NEAR identical for fields and properties so we don't have to maintain two versions in 2 locations
         /// </summary>
         /// <param name="instance"></param>
@@ -273,7 +280,7 @@ namespace AID
         /// <summary>
         /// Finds all statics in classes, methods, fields, and properties that have the ConsoleCommand attribute on them and attempts to add them
         /// to the console. By default this is called when the Console is first reqested.
-        /// 
+        ///
         /// Note that a ConsoleCommand attribute placed on a class, it will attempt to add all contained methods, fields and properties that are not
         /// already tagged up with the attribute.
         /// </summary>

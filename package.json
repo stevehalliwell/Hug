@@ -4,13 +4,19 @@
   "displayName": "Hug",
   "unity": "2019.3",
   "keywords": [
-    "keyword1",
-    "keyword2",
-    "keyword3"
+    "console"
   ],
   "author": {
-    "name": "Unity",
-    "email": "unity@example.com",
-    "url": "https://www.unity3d.com"
-  }
+    "name": "Steve Halliwell",
+    "url": "http://stevehalliwell.com/"
+  },
+  "description": "A Developer Console",
+  "hideInEditor": false,
+  "samples": [
+    {
+      "displayName": "Simple Sample",
+      "description": "Demonstrate a range of simply additions to the console and usage",
+      "path": "Samples~/Simple Sample"
+    }
+  ]
 }
