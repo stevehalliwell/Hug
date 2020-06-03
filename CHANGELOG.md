@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Auto help string generation during auto binding
 - Tests
 
+## [0.1.1] - 
+### Changed
+- ResgisterAttributes call moved to DevConsoleBinding
+
 
 ## [0.1.0] - 2020-06-02
 ### Added

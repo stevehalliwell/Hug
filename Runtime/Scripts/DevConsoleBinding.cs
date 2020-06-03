@@ -13,6 +13,7 @@ namespace AID
         public void Awake()
         {
             devConsole = GetComponent<DevConsole>();
+            ConsoleBindingHelper.RegisterAttributes();
         }
 
         public void OnEnable()
