@@ -50,7 +50,6 @@ namespace AID
                 if (instance == null)
                 {
                     instance = new Console();
-                    ConsoleBindingHelper.RegisterAttributes();
                 }
 
                 return instance;
