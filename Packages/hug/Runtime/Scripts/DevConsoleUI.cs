@@ -13,12 +13,12 @@ namespace AID
     ///
     /// Also shows unity's Debug log outputs with color coding.
     /// </summary>
-    public class DevConsole : MonoBehaviour
+    public class DevConsoleUI : MonoBehaviour
     {
         [Tooltip("If true, only show the first line of a log from the Unity.Debug")]
-        public bool firstLineOnly = true;
+        [SerializeField] protected bool firstLineOnly = true;
 
-        public InputField inputField;
+        [SerializeField] protected InputField inputField;
 
         /// <summary>
         /// Invoked with content of the inputfield when the confirmCommandEntered is hit. String is entire contents of input.
@@ -33,31 +33,32 @@ namespace AID
         /// </summary>
         public System.Func<string, string[]> OnConsoleCompleteRequested;
 
-        public ScrollRect outputScrollRect;
-        public RectTransform outputTextContainer;
+        [SerializeField] protected ScrollRect outputScrollRect;
+        [SerializeField] protected RectTransform outputTextContainer;
 
         [Tooltip("Holder of all the console objects when it is active and shown to user")]
-        public GameObject outputTextLocalRoot;
+        [SerializeField] protected GameObject outputTextLocalRoot;
 
         [Tooltip("Prefab used for each element shown in the output")]
-        public Text outputTextPrefab;
+        [SerializeField] protected Text outputTextPrefab;
 
-        public AnimationCurve previewPanelFade;
-        public Text previewText;
-        public CanvasGroup previewTextCanvasGroup;
+        [SerializeField] protected AnimationCurve previewPanelFade;
+        [SerializeField] protected Text previewText;
+        [SerializeField] protected CanvasGroup previewTextCanvasGroup;
 
         [Tooltip("Negative is infinite")]
-        public float showLogFor = -1;
+        [SerializeField] protected float showLogFor = -1;
 
-        public KeyCode toggleConsole = KeyCode.Tilde,
-                       confirmCommandEntered = KeyCode.Return,
-                       suggestionKey = KeyCode.Tab,
-                       historyIndexUp = KeyCode.UpArrow,
-                       historyIndexDown = KeyCode.DownArrow;
+        [SerializeField]
+        protected KeyCode toggleConsole = KeyCode.Tilde,
+                      confirmCommandEntered = KeyCode.Return,
+                      suggestionKey = KeyCode.Tab,
+                      historyIndexUp = KeyCode.UpArrow,
+                      historyIndexDown = KeyCode.DownArrow;
 
         private const int MAX_HISTORY = 50;
 
-        private static readonly Dictionary<LogType, string> logTypeColors = new Dictionary<LogType, string>
+        protected static readonly Dictionary<LogType, string> logTypeColors = new Dictionary<LogType, string>
         {
             { LogType.Assert    , "<color=#ffffffff>" },
             { LogType.Error     , "<color=#ff0000ff>" },
@@ -65,14 +66,14 @@ namespace AID
             { LogType.Warning   , "<color=#ffff00ff>" },
         };
 
-        private bool needsScrollUpdate;
-        private List<string> enteredHistory = new List<string>();
-        private int prevCompleteIndex;
-        private string[] prevCompleteResults;
-        private int prevHistoryIndex;
-        private float previewPanelCounter;
-        private int previousCaretPos;
-        private string previousInputLine;
+        protected bool needsScrollUpdate;
+        protected List<string> enteredHistory = new List<string>();
+        protected int prevCompleteIndex;
+        protected string[] prevCompleteResults;
+        protected int prevHistoryIndex;
+        protected float previewPanelCounter;
+        protected int previousCaretPos;
+        protected string previousInputLine;
 
         /// <summary>
         /// Find the number of shared common characters among an array of strings. Used during autocomplete to fill in
@@ -105,7 +106,7 @@ namespace AID
             return startingIndex;
         }
 
-        public void AddPreviewText(string toLog)
+        protected virtual void AddPreviewText(string toLog)
         {
             if (toLog.Last() != '\n')
                 toLog += "\n";
@@ -140,7 +141,7 @@ namespace AID
         /// Completion can take a number of actions, either finding multiple partial matches, moving through the existing collection
         /// of partial matches, filling out a complete line as there is only 1 partial match, finding zero matches.
         /// </summary>
-        public void CompleteConsoleInput()
+        protected virtual void CompleteConsoleInput()
         {
             if (OnConsoleCompleteRequested == null)
                 return;
@@ -193,9 +194,9 @@ namespace AID
             previousInputLine = inputField.text;
         }
 
-        public void DoConsoleInput(string input)
+        protected virtual void DoConsoleInput(string input)
         {
-            if(OnConsoleCommandInput != null)
+            if (OnConsoleCommandInput != null)
                 OnConsoleCommandInput.Invoke(input);
 
             //cleanup
@@ -210,7 +211,7 @@ namespace AID
             prevHistoryIndex = enteredHistory.Count;
         }
 
-        public void ToggleConsole()
+        protected virtual void ToggleConsole()
         {
             outputTextLocalRoot.SetActive(!outputTextLocalRoot.activeInHierarchy);
             previewText.gameObject.SetActive(!outputTextLocalRoot.activeInHierarchy);
@@ -223,13 +224,13 @@ namespace AID
             }
         }
 
-        protected IEnumerator DelayRemovePreviewText(int thisLogLen)
+        protected virtual IEnumerator DelayRemovePreviewText(int thisLogLen)
         {
             yield return new WaitForSeconds(showLogFor);
             previewText.text = previewText.text.Substring(thisLogLen);
         }
 
-        protected void SafeShowHistory()
+        protected virtual void SafeShowHistory()
         {
             prevHistoryIndex = Mathf.Clamp(prevHistoryIndex, 0, enteredHistory.Count - 1);
             inputField.text = enteredHistory[prevHistoryIndex];
@@ -237,14 +238,14 @@ namespace AID
             inputField.selectionFocusPosition = inputField.text.Length;
         }
 
-        private void AutoCompletePreviewText()
+        protected virtual void AutoCompletePreviewText()
         {
             inputField.text = prevCompleteResults[prevCompleteIndex];
             inputField.selectionFocusPosition = inputField.text.Length;
         }
 
         //required so we can autoscroll to the bottom safely only once perframe if it is required
-        private void LateUpdate()
+        protected virtual void LateUpdate()
         {
             if (outputTextLocalRoot.activeInHierarchy && needsScrollUpdate)
             {
@@ -257,17 +258,17 @@ namespace AID
                 ToggleConsole();
         }
 
-        private void OnDisable()
+        protected virtual void OnDisable()
         {
             Application.logMessageReceived -= UnityConsoleHandler;
         }
 
-        private void OnEnable()
+        protected virtual void OnEnable()
         {
             Application.logMessageReceived += UnityConsoleHandler;
         }
 
-        private void UnityConsoleHandler(string msg, string stackTrace, LogType type)
+        protected virtual void UnityConsoleHandler(string msg, string stackTrace, LogType type)
         {
             if (!enabled)
                 return;
@@ -296,7 +297,7 @@ namespace AID
             AddToMainOutput(toLog);
         }
 
-        private void Update()
+        protected virtual void Update()
         {
             if (inputField.gameObject.activeInHierarchy)
             {

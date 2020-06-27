@@ -4,24 +4,26 @@ using UnityEngine.Assertions;
 namespace AID
 {
     /// <summary>
-    /// Console itself is fairly simple, it holds collections of delegates by name. It's a singleton and is separated from the tasks of UI and param
-    /// lists and type conversion by other classes. This is intended to be the simplest form it can take.
+    /// Console itself is fairly simple, it holds collections of delegates by name. It's a singleton and is separated
+    /// from the tasks of UI and param lists and type conversion by other classes. This is intended to be the
+    /// simplest form it can take.
     ///
     /// Commands take the form of void Func(string), where string is the uneditted param list given by the user.
     /// Command names are expecting to be separated by the NodeSeparatorChar, defaults to . to indicate namespaces/folders.
-    /// Commands are split on the CommandParamSeparator, defaults to ' '. Everything before it is the command name, every after is the param
+    /// Commands are split on the CommandParamSeparator, defaults to ' '. Everything before it is the command name,
+    /// every after is the param.
     ///
     /// All strings used and passed are trimmed. If whitespace is important to your param, enclosing in quotes is recommended.
     ///
     /// See the BindingHelper for working with functions with automatic conversation from user input string to paramlist.
-    /// See DevConsole for working with UI, showing output and feeding input.
+    /// See DevConsoleUI for working with UI, showing output and feeding input.
     /// </summary>
     public class Console
     {
         public delegate void CommandCallback(string paramString);
 
         /// <summary>
-        /// Needs to be set by whatever is going to display the results to the user of the Console. See DevConsole.
+        /// Needs to be set by whatever is going to display the results to the user of the Console. See DevConsoleUI.
         /// </summary>
         public static System.Action<string> OnOutputUpdated;
 

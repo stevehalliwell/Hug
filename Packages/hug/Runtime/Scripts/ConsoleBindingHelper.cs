@@ -8,31 +8,45 @@ using System.Text.RegularExpressions;
 namespace AID
 {
     /// <summary>
-    /// These methods provide the bridge between the Console and methods or fields/properties. The generate Console.CommandCallback delegates that
-    /// handle the conversion of the input string from the user to the required typed objects needed by the navitive method. This is done with
-    /// the help fo the StringToType class.
-    /// It also provides helpers for binding all of a static class, an object instance, or all items with the ConsoleCommand Attribute attached
-    /// to them.
+    /// These methods provide the bridge between the Console and methods or fields/properties. The generate
+    /// Console.CommandCallback delegates that handle the conversion of the input string from the user to the required
+    /// typed objects needed by the navitive method. This is done with the help fo the StringToType class.
     ///
-    /// Presently using regex to determine parameter lists from user string. Meaning whitespace between params determines the number of params. 
-    /// If you are using functions with multiple parameters be aware of this limitation/requirement. For example a method that takes a string, 
-    /// a vector3 and a float needs to be "the string input" 1,2,3 3.14. This will be interpreted as 3 params {"the string input", "1,2,3", "3.14"}
-    /// 
-    /// Notes for IL2CPP and code stripping: the binding and attributes usage is all based on reflection, so when Unity is stripping code
-    /// it may not see that we are trying to reference certain elements. For example, a AddAllToConsole(null,null, typeof(Physics)); will result
-    /// in all elements of the physics class not directly referenced elsewhere in your code, missing, a link.xml or attributes may be required.
+    /// It also provides helpers for binding all of a static class, an object instance, or all items with the ConsoleCommand
+    ///  Attribute attached to them.
+    ///
+    /// Presently using regex to determine parameter lists from user string. Meaning whitespace between params determines
+    /// the number of params. If you are using functions with multiple parameters be aware of this limitation/requirement.
+    /// For example a method that takes a string, a vector3 and a float needs to be "the string input" 1,2,3 3.14.
+    /// This will be interpreted as 3 params {"the string input", "1,2,3", "3.14"}
+    ///
+    /// Notes for IL2CPP and code stripping: the binding and attributes usage is all based on reflection, so when Unity
+    /// is stripping code it may not see that we are trying to reference certain elements. For example, a
+    /// AddAllToConsole(null,null, typeof(Physics)); will result in all elements of the physics class not directly
+    /// referenced elsewhere in your code, missing, a link.xml or attributes may be required.
     /// See https://docs.unity3d.com/Manual/ManagedCodeStripping.html
     /// </summary>
     public static class ConsoleBindingHelper
     {
         /// <summary>
-        /// Will attempt to add all aspects of the given instance or type to the Console. If an instance is provided that will be used to deduce
-        /// the type and will bind instance declarations. If no instance is given, a type must be given and all static declarations.
+        /// The ConsoleBindingHelper can generate a lot of failures when requested to operate on assemblies or classes, when
+        /// errors or limits are hit they are logged via this delegate so they can be routed or logged as loudly or quitely
+        /// as desired by the user.
+        /// </summary>
+        public static Action<string> OnErrorLogDelegate = delegate { };
+
+        /// <summary>
+        /// Will attempt to add all aspects of the given instance or type to the Console. If an instance is provided
+        /// that will be used to deduce the type and will bind instance declarations. If no instance is given, a type
+        /// must be given and all static declarations.
         /// </summary>
         /// <param name="instance">if set, type will be fetched and instance binding</param>
         /// <param name="startingName">if not set will be set to type.Name</param>
         /// <param name="type">if set and instance is null, static binding</param>
-        public static void AddAllToConsole(object instance, string startingName, Type type = null,
+        public static void AddAllToConsole(
+            object instance,
+            string startingName,
+            Type type = null,
             BindingFlags bindingFlags = BindingFlags.Public | BindingFlags.DeclaredOnly,
             bool shouldAddMethods = true,
             bool shouldAddFields = true,
@@ -73,7 +87,9 @@ namespace AID
 
                     if (wrappedFunc != null)
                     {
-                        Console.RegisterCommand(startingName + Console.NodeSeparator + item.Name, string.Empty, wrappedFunc);
+                        var paramTypesNames = item.GetParameters().Select(x => x.ParameterType.Name + " " + x.Name).ToArray();
+                        var methodSig = "Expects " + string.Join(", ", paramTypesNames);
+                        Console.RegisterCommand(startingName + Console.NodeSeparator + item.Name, methodSig, wrappedFunc);
                     }
                 }
             }
@@ -148,7 +164,7 @@ namespace AID
 
             if (!paramSuccess)
             {
-                UnityEngine.Debug.LogError(string.Format("Cannot generate callback for method {0}. {1}", item.Name, report));
+                OnErrorLogDelegate(string.Format("Cannot generate callback for method {0}. {1}", item.Name, report));
                 return null;
             }
 
@@ -161,8 +177,7 @@ namespace AID
 
                 if (sParams.Length != pList.Length)
                 {
-                    UnityEngine.Debug.LogError("Param count mismatch. Expected " + pList.Length.ToString() + " got " + sParams.Length);
-
+                    OnErrorLogDelegate("Param count mismatch. Expected " + pList.Length.ToString() + " got " + sParams.Length);
                     return;
                 }
                 else
@@ -173,7 +188,7 @@ namespace AID
 
                         if (res == null)
                         {
-                            UnityEngine.Debug.LogError(string.Format("Param #{0} failed. Could not convert \"{1}\" to type {2}", i, sParams[i], pList[i].ParameterType.Name));
+                            OnErrorLogDelegate(string.Format("Param #{0} failed. Could not convert \"{1}\" to type {2}", i, sParams[i], pList[i].ParameterType.Name));
                             return;
                         }
 
@@ -215,7 +230,7 @@ namespace AID
 
             if (!StringToType.IsSupported(paramType))
             {
-                UnityEngine.Debug.LogError(string.Format("Cannot generate variable wrapper on {0}, type {1} is not supported.", name, paramType.Name));
+                OnErrorLogDelegate(string.Format("Cannot generate variable wrapper on {0}, type {1} is not supported.", name, paramType.Name));
                 return;
             }
 
@@ -274,7 +289,7 @@ namespace AID
             var attrs = attrProv.GetCustomAttributes(typeof(ConsoleCommandAttribute), false) as ConsoleCommandAttribute[];
             var attr = attrs.Length > 0 ? attrs[0] : null;
 
-            Console.RegisterCommand(finalName, attr != null ? attr.help : string.Empty, wrappedFunc);
+            Console.RegisterCommand(finalName, attr != null ? attr.help : "Expects " + paramType.ToString(), wrappedFunc);
         }
 
         /// <summary>
@@ -307,18 +322,19 @@ namespace AID
                     if (!(methInfo.GetCustomAttribute(typeof(ConsoleCommandAttribute), true) is ConsoleCommandAttribute cmdAttr))
                         continue;
 
-                    //it is annoying that this is so similar to AddMethodToConsole but we have need of extra info and extra checks given attribute used
+                    //it is annoying that this is so similar to AddMethodToConsole but we have need of extra info and
+                    //  extra checks given attribute used
                     var cb = CallbackFromMethod(methInfo, null);
 
                     if (cb == null)
                     {
-                        UnityEngine.Debug.LogError(string.Format("Method {0}.{1} takes the wrong arguments for a console command.", type, methInfo.Name));
+                        OnErrorLogDelegate(string.Format("Method {0}.{1} takes the wrong arguments for a console command.", type, methInfo.Name));
                         continue;
                     }
 
                     if (string.IsNullOrEmpty(cmdAttr.name))
                     {
-                        UnityEngine.Debug.LogError(string.Format("Method {0}.{1} needs a valid command name.", type, methInfo.Name));
+                        OnErrorLogDelegate(string.Format("Method {0}.{1} needs a valid command name.", type, methInfo.Name));
                         continue;
                     }
 

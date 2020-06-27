@@ -6,16 +6,15 @@ namespace AID
     /// <summary>
     /// Static container for working with string data sources to typed sources.
     ///
-    /// Uses object boxing to return through the same interface. To add more
-    /// types to support, see the converters dictionary. It must register as the
-    /// type it supports and then provide a function that takes string and returns
-    /// boxed object of stated type.
+    /// Uses object boxing to return through the same interface. To add more types to support, see the converters dictionary.
+    /// It must register as the type it supports and then provide a function that takes string and returns boxed object of 
+    /// stated type.
     /// </summary>
     public static class StringToType
     {
         public delegate object StringToTypeDelegate(string s);
 
-        private static readonly Dictionary<System.Type, StringToTypeDelegate> converters =
+        private static Dictionary<System.Type, StringToTypeDelegate> converters =
         new Dictionary<System.Type, StringToTypeDelegate>()
         {
             {typeof(int)                , (string s) => { return int.Parse(s);} },
@@ -26,6 +25,15 @@ namespace AID
             {typeof(UnityEngine.Vector3), (string s) => { return V3FromFloatArray(StringToFloatArray(s)); } },
             {typeof(UnityEngine.Vector2), (string s) => { return V2FromFloatArray(StringToFloatArray(s)); } }
         };
+
+        /// <summary>
+        /// Add or replace the delegate converter for a specific type. This method to call by users to add their own
+        /// types for support in the DevConsole.
+        /// </summary>
+        public static void SetConverterDelegateForType(System.Type t, StringToTypeDelegate del)
+        {
+            converters[t] = del;
+        }
 
         /// <summary>
         /// Extracts delimited numberals only

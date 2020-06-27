@@ -1,5 +1,4 @@
-﻿using AID;
-using System.Linq;
+﻿using System.Linq;
 using UnityEngine;
 
 namespace AID.Examples
@@ -10,13 +9,32 @@ namespace AID.Examples
 
         private void Start()
         {
+            //we can add our own type to the StringToType system
+            StringToType.SetConverterDelegateForType(
+                typeof(ConsoleStaticCommandsTest.SomethingSupported),
+                (s) => { return new ConsoleStaticCommandsTest.SomethingSupported() { val = int.Parse(s) }; });
+
+            //we temp bind the error log to nothing, so we aren't spammed during adding items we know will
+            //  have lots of failures.
+            var prevLog = ConsoleBindingHelper.OnErrorLogDelegate;
+            ConsoleBindingHelper.OnErrorLogDelegate = delegate { };
+            
+            //binding a class intended to have all static items added
             ConsoleBindingHelper.AddAllToConsole(null, null, typeof(ConsoleStaticCommandsTest));
+
+            //binding a specific instance to the console
             ConsoleBindingHelper.AddAllToConsole(instTest, "instTest");
+
+            //binding a class that is a monostate/c# wrapper around a singleton from Unity
             ConsoleBindingHelper.AddAllToConsole(null, null, typeof(Physics));
 
             Console.Log("Try entering Console.AddStaticTypeByString Physics2D");
+            
+            //restore the logger
+            ConsoleBindingHelper.OnErrorLogDelegate = prevLog;
         }
 
+        //binding via attribute, the RegisterAttributes call in the binder will cause this to be added to the console
         [ConsoleCommand("Console.AddStaticTypeByString", "Attempt to add all static methods, props and fields of the type given by a string")]
         public static void AddStaticTypeByString(string typeName)
         {
@@ -103,10 +121,15 @@ namespace AID.Examples
             Debug.Log(str + ", " + v3.ToString() + ", " + a.ToString());
         }
 
-        public class Something { }
+        public class SomethingUnsupported { }
+        public class SomethingSupported { public int val; }
 
-        public static void MethodWithUnsupportedParamType(Something s)
+        public static void MethodWithUnsupportedParamType(SomethingUnsupported s)
         {
+        }
+        public static void MethodWithSupportedParamType(SomethingSupported s)
+        {
+            Debug.Log(s.val);
         }
     }
 }

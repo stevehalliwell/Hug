@@ -39,10 +39,14 @@ namespace AID
             var nList = new List<ConsoleCommandTreeNode>();
             System.Func<ConsoleCommandTreeNode, bool> findNames = (ConsoleCommandTreeNode t) =>
             {
-                if (t.Command != null && t.Command.localName.ToLowerInvariant().Contains(s))
+                if (t.Command != null)
                 {
-                    nList.Add(t);
-                    return false;   //no point checking children as they will match this already
+                    if (t.Command.localName.ToLowerInvariant().Contains(s) ||
+                        (t.Command.help.ToLowerInvariant().Contains(s)))
+                    {
+                        nList.Add(t);
+                        return false;   //no point checking children as they will match this already
+                    }
                 }
 
                 //try it's children
