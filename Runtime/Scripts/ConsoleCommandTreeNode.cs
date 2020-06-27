@@ -10,14 +10,15 @@ namespace AID
     {
         public Console.CommandCallback callback;
 
-        public string localName, help;
+        public string localName = string.Empty, help = string.Empty;
     }
 
     /// <summary>
     /// Keeping commands organised in a tree makes a certain sense, given the heirarchical nature we support in command names.
     ///
-    /// At present each node is either a command or a folder of nodes. Commands are at leafs. This is easy to reason about and move over the
-    /// graph in visitors. It is however not the fastest method, the console command lookup time however should not be a pain point of performance.
+    /// At present each node is either a command or a folder of nodes. Commands are at leafs. This is easy to reason
+    /// about and move over the graph in visitors. It is however not the fastest method, the console command lookup time
+    /// however should not be a pain point of performance.
     /// </summary>
     public class ConsoleCommandTreeNode
     {
@@ -41,7 +42,8 @@ namespace AID
             {
                 var hasParent = parentNode != null;
                 var parentPart = hasParent ? parentNode.FullCommandPath : string.Empty;
-                var myPart = (hasParent && parentNode.Command != null ? Console.NodeSeparator : string.Empty) + (Command != null ? Command.localName : string.Empty);
+                var myPart = (hasParent && parentNode.Command != null ? Console.NodeSeparator : string.Empty) +
+                    (Command != null ? Command.localName : string.Empty);
                 return parentPart + myPart;
             }
         }
@@ -49,7 +51,8 @@ namespace AID
         public int NumSubComands { get { return subCommandsLookUp.Count; } }
 
         /// <summary>
-        /// Add a new command with names separated by folders/namespaces, last is command name, others are holders. These will be made as required
+        /// Add a new command with names separated by folders/namespaces, last is command name, others are holders.
+        /// These will be made as required
         /// during the add.
         /// </summary>
         /// <param name="names">separated command name e.g. Physics.gravity is now {"Physics","gravity"}</param>
@@ -78,7 +81,8 @@ namespace AID
         }
 
         /// <summary>
-        /// Removes the TreeNode of given name, regardless of it being a leaf or not. Use of Clear when found will clear all child nodes.
+        /// Removes the TreeNode of given name, regardless of it being a leaf or not. Use of Clear when found will
+        /// clear all child nodes.
         /// </summary>
         /// <param name="names">separated command name</param>
         /// <param name="command_index">used in the recursion, indicates current depth in names array</param>
@@ -105,7 +109,8 @@ namespace AID
         }
 
         /// <summary>
-        /// Find a command of given separated name. If no exact match is found, returns false and out node is the closest node that was found.
+        /// Find a command of given separated name. If no exact match is found, returns false and out node is the closest
+        /// node that was found.
         /// </summary>
         /// <param name="commandName"></param>
         /// <param name="node"></param>

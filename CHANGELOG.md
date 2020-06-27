@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.1] - 
 ### Changed
 - ResgisterAttributes call moved to DevConsoleBinding
+- Rename UI class to better reflect intent
+- Add custom logging delegate and use in RegisterAttributes and sample to prevent Error spam.
 
 
 ## [0.1.0] - 2020-06-02
